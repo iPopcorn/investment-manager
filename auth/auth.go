@@ -14,7 +14,7 @@ import (
 
 	"github.com/go-jose/go-jose/v4"
 	"github.com/go-jose/go-jose/v4/jwt"
-	"github.com/joho/godotenv"
+	"github.com/iPopcorn/investment-manager/config"
 )
 
 var max = big.NewInt(math.MaxInt64)
@@ -49,14 +49,12 @@ type BuildJWTOptions struct {
 type nonceSource struct{}
 
 func GetApiKey() (*APIKey, error) {
-	err := godotenv.Load(".env")
-
+	config, err := config.GetConfig()
 	if err != nil {
 		return nil, err
 	}
 
-	apiKeyPath := os.Getenv("API_KEY_PATH")
-	apiKeyJsonFile, err := os.Open(apiKeyPath)
+	apiKeyJsonFile, err := os.Open(config.ApiKeyPath)
 
 	if err != nil {
 		return nil, err
