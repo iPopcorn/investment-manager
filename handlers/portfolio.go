@@ -6,19 +6,9 @@ import (
 	"net/http"
 
 	"github.com/iPopcorn/investment-manager/infrastructure"
+	"github.com/iPopcorn/investment-manager/types"
 	"github.com/spf13/cobra"
 )
-
-type PortfolioResponse struct {
-	Portfolios []Portfolio `json:"portfolios"`
-}
-
-type Portfolio struct {
-	Name    string `json:"name"`
-	Uuid    string `json:"uuid"`
-	Type    string `json:"type"`
-	Deleted bool   `json:"deleted"`
-}
 
 func HandlePortfolio(cmd *cobra.Command, args []string) error {
 	fmt.Printf("portfolio called\nargs: %v\n", args)
@@ -33,7 +23,7 @@ func HandlePortfolio(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func displayPortfolios(portfolioResponse *PortfolioResponse) {
+func displayPortfolios(portfolioResponse *types.PortfolioResponse) {
 	fmt.Println("Portfolios:")
 	for i, p := range portfolioResponse.Portfolios {
 		fmt.Printf("%d)\n", i+1)
@@ -44,7 +34,7 @@ func displayPortfolios(portfolioResponse *PortfolioResponse) {
 	}
 }
 
-func listPortfolios() (*PortfolioResponse, error) {
+func listPortfolios() (*types.PortfolioResponse, error) {
 	url := "https://api.coinbase.com/api/v3/brokerage/portfolios"
 
 	httpClient := infrastructure.InvestmentManagerHTTPClient{
@@ -57,7 +47,7 @@ func listPortfolios() (*PortfolioResponse, error) {
 		return nil, fmt.Errorf("Error getting portfolios from api: \n%v\n", err)
 	}
 
-	var resp PortfolioResponse
+	var resp types.PortfolioResponse
 	json.Unmarshal(httpResponse, &resp)
 
 	return &resp, nil

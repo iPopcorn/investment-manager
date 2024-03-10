@@ -18,6 +18,12 @@ func TestPortfolioDetails(t *testing.T) {
 
 		expectError(ExecuteCommand(args), t)
 	})
+
+	t.Run("Returns an error when portfolio-details command cannot find given portfolio", func(t *testing.T) {
+		args := []string{"portfolio-details", "portfolio-doesnt-exist"}
+
+		expectError(ExecuteCommand(args), t)
+	})
 }
 
 func ExecuteCommand(args []string) error {

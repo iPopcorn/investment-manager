@@ -1,12 +1,14 @@
 package handlers
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
 	"strings"
 
 	"github.com/iPopcorn/investment-manager/infrastructure"
+	"github.com/iPopcorn/investment-manager/types"
 	"github.com/spf13/cobra"
 )
 
@@ -32,16 +34,10 @@ func listPortfolioDetails(portfolioName string) error {
 		return err
 	}
 
-	var foundPortfolio Portfolio
-	for _, portfolio := range portfolios.Portfolios {
-		if strings.ToLower(portfolioName) == strings.ToLower(portfolio.Name) {
-			foundPortfolio = portfolio
-			break
-		}
-	}
+	foundPortfolio, err := findPortfolio(portfolioName, portfolios.Portfolios)
 
-	if &foundPortfolio == nil {
-		return fmt.Errorf("Could not find portfolio with the name: %s", portfolioName)
+	if err != nil {
+		return err
 	}
 
 	portfolioID := foundPortfolio.Uuid
@@ -58,6 +54,25 @@ func listPortfolioDetails(portfolioName string) error {
 		return fmt.Errorf("Error getting portfolios from api: \n%v\n", err)
 	}
 
-	fmt.Printf("Portfolio details for %s:\n%s", portfolioName, httpResponse)
+	var portfolioDetailsResponse types.PortfolioDetailsResponse
+	err = json.Unmarshal(httpResponse, &portfolioDetailsResponse)
+
+	fmt.Printf("%+v", portfolioDetailsResponse)
 	return nil
+}
+
+func findPortfolio(name string, portfolios []types.Portfolio) (*types.Portfolio, error) {
+	var foundPortfolio *types.Portfolio = nil
+	for _, portfolio := range portfolios {
+		if strings.ToLower(name) == strings.ToLower(portfolio.Name) {
+			foundPortfolio = &portfolio
+			break
+		}
+	}
+
+	if foundPortfolio == nil {
+		return nil, fmt.Errorf("Could not find portfolio with the name: %s", name)
+	}
+
+	return foundPortfolio, nil
 }
