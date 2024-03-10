@@ -20,13 +20,31 @@ type Portfolio struct {
 	Deleted bool   `json:"deleted"`
 }
 
-func HandlePortfolio(cmd *cobra.Command, args []string) {
+func HandlePortfolio(cmd *cobra.Command, args []string) error {
 	fmt.Printf("portfolio called\nargs: %v\n", args)
 	fmt.Printf("listing portfolios...\n")
-	listPortfolios()
+	portfolios, err := listPortfolios()
+
+	if err != nil {
+		return err
+	}
+
+	displayPortfolios(portfolios)
+	return nil
 }
 
-func listPortfolios() {
+func displayPortfolios(portfolioResponse *PortfolioResponse) {
+	fmt.Println("Portfolios:")
+	for i, p := range portfolioResponse.Portfolios {
+		fmt.Printf("%d)\n", i+1)
+		fmt.Printf(" Name: %s\n", p.Name)
+		fmt.Printf(" Type: %s\n", p.Type)
+		fmt.Printf(" UUID: %s\n", p.Uuid)
+		fmt.Printf(" Is Deleted?: %t\n", p.Deleted)
+	}
+}
+
+func listPortfolios() (*PortfolioResponse, error) {
 	url := "https://api.coinbase.com/api/v3/brokerage/portfolios"
 
 	httpClient := infrastructure.InvestmentManagerHTTPClient{
@@ -36,18 +54,11 @@ func listPortfolios() {
 	httpResponse, err := httpClient.Get(url)
 
 	if err != nil {
-		fmt.Errorf("Error getting portfolios from api: \n%v\n", err)
+		return nil, fmt.Errorf("Error getting portfolios from api: \n%v\n", err)
 	}
 
 	var resp PortfolioResponse
 	json.Unmarshal(httpResponse, &resp)
 
-	fmt.Println("Portfolios:")
-	for i, p := range resp.Portfolios {
-		fmt.Printf("%d)\n", i+1)
-		fmt.Printf(" Name: %s\n", p.Name)
-		fmt.Printf(" Type: %s\n", p.Type)
-		fmt.Printf(" UUID: %s\n", p.Uuid)
-		fmt.Printf(" Is Deleted?: %t\n", p.Deleted)
-	}
+	return &resp, nil
 }

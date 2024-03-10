@@ -11,7 +11,7 @@ var portfolioDetailsCmd = &cobra.Command{
 	Long: `Display details about a given portfolio. 
 If no portfolio is given, display details of the first
 portfolio in the list. use 'portfolio' command to see list of portfolios.`,
-	Run: handlers.PortfolioDetails,
+	RunE: handlers.PortfolioDetails,
 }
 
 func init() {

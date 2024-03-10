@@ -15,7 +15,7 @@ var portfolioCmd = &cobra.Command{
 	Short: "display information about your portfolio(s)",
 	Long: `Display information about your portfolio(s)
 Calling 'portfolio' will list all portfolios associated with your account`,
-	Run: handlers.HandlePortfolio,
+	RunE: handlers.HandlePortfolio,
 }
 
 func init() {
