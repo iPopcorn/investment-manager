@@ -13,8 +13,6 @@ import (
 )
 
 func PortfolioDetails(cmd *cobra.Command, args []string) error {
-	fmt.Printf("Called portfolio-details\nargs: %v\n", args)
-
 	if len(args) == 0 {
 		return errors.New("Expected an argument but did not receive one")
 	}
@@ -23,21 +21,33 @@ func PortfolioDetails(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("Expected 1 arg, received %d args", len(args))
 	}
 
-	err := listPortfolioDetails(args[0])
+	details, err := getPortfolioDetails(args[0])
+	showPortfolioDetails(details)
 	return err
 }
 
-func listPortfolioDetails(portfolioName string) error {
+func showPortfolioDetails(details *types.PortfolioDetailsResponse) {
+	name := details.Breakdown.Portfolio.Name
+	cashBalance := details.Breakdown.PortfolioBalances.TotalCashEquivalentBalance
+	totalBalance := details.Breakdown.PortfolioBalances.TotalBalance
+
+	fmt.Println("Portfolio Details")
+	fmt.Printf("Name: %s\n", name)
+	fmt.Printf("Total Value: %s %s\n", totalBalance.Value, totalBalance.Currency)
+	fmt.Printf("Amount available for trade: %s %s\n", cashBalance.Value, cashBalance.Currency)
+}
+
+func getPortfolioDetails(portfolioName string) (*types.PortfolioDetailsResponse, error) {
 	portfolios, err := listPortfolios()
 
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	foundPortfolio, err := findPortfolio(portfolioName, portfolios.Portfolios)
 
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	portfolioID := foundPortfolio.Uuid
@@ -51,14 +61,13 @@ func listPortfolioDetails(portfolioName string) error {
 	httpResponse, err := httpClient.Get(url)
 
 	if err != nil {
-		return fmt.Errorf("Error getting portfolios from api: \n%v\n", err)
+		return nil, fmt.Errorf("Error getting portfolios from api: \n%v\n", err)
 	}
 
 	var portfolioDetailsResponse types.PortfolioDetailsResponse
 	err = json.Unmarshal(httpResponse, &portfolioDetailsResponse)
 
-	fmt.Printf("%+v", portfolioDetailsResponse)
-	return nil
+	return &portfolioDetailsResponse, nil
 }
 
 func findPortfolio(name string, portfolios []types.Portfolio) (*types.Portfolio, error) {
