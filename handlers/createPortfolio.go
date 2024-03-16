@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
 
@@ -52,26 +51,19 @@ func createPortfolio(name string) (*types.PortfolioCreatedResponse, error) {
 		return nil, fmt.Errorf("Error creating portfolio: \n%v\n", err)
 	}
 
-	var resp types.PortfolioCreatedResponse
-	var errResp types.PortfolioCreatedErrorResponse
-
-	err = json.Unmarshal(httpResponse, &resp)
-	err = json.Unmarshal(httpResponse, &errResp)
+	err = handleErrorResponse(httpResponse)
 
 	if err != nil {
+		fmt.Println("Failed to create portfolio")
 		return nil, err
 	}
 
-	if errResp.Error != "" {
-		errMsg := fmt.Sprintf("Error: %s\nCode: %d\nMessage: %s\nDetails: \nTypeURL: %s\nValue: %s\n",
-			errResp.Error,
-			errResp.Code,
-			errResp.Message,
-			errResp.Details.TypeUrl,
-			errResp.Details.Value,
-		)
+	var resp types.PortfolioCreatedResponse
+	err = json.Unmarshal(httpResponse, &resp)
 
-		return nil, errors.New(errMsg)
+	if err != nil {
+		fmt.Println("Failed to parse response")
+		return nil, err
 	}
 
 	return &resp, nil

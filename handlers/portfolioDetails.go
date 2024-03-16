@@ -22,6 +22,11 @@ func PortfolioDetails(cmd *cobra.Command, args []string) error {
 	}
 
 	details, err := getPortfolioDetails(args[0])
+
+	if err != nil {
+		return err
+	}
+
 	showPortfolioDetails(details)
 	return err
 }
@@ -62,6 +67,13 @@ func getPortfolioDetails(portfolioName string) (*types.PortfolioDetailsResponse,
 
 	if err != nil {
 		return nil, fmt.Errorf("Error getting portfolios from api: \n%v\n", err)
+	}
+
+	err = handleErrorResponse(httpResponse)
+
+	if err != nil {
+		fmt.Println("Failed to retrieve portfolio details")
+		return nil, err
 	}
 
 	var portfolioDetailsResponse types.PortfolioDetailsResponse

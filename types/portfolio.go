@@ -8,16 +8,9 @@ type PortfolioCreatedResponse struct {
 	Portfolio Portfolio `json:"portfolio"`
 }
 
-type PortfolioCreatedErrorResponse struct {
-	Error   string       `json:"error"`
-	Code    int16        `json:"code"`
-	Message string       `json:"message"`
-	Details ErrorDetails `json:"details"`
-}
-
-type ErrorDetails struct {
-	TypeUrl string `json:"type_url"`
-	Value   string `json:"value"`
+type ErrorResponse struct {
+	Error   string `json:"error"`
+	Message string `json:"message"`
 }
 
 type Portfolio struct {
