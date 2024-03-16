@@ -1,6 +1,7 @@
 package infrastructure
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -19,17 +20,33 @@ type InvestmentManagerHTTPClient struct {
 }
 
 func (client InvestmentManagerHTTPClient) Get(url string) ([]byte, error) {
-	httpMethod := "GET"
+	return client.sendAuthenticatedHttpRequest(url, "GET", nil)
+}
+
+func (client InvestmentManagerHTTPClient) Post(url string, request []byte) ([]byte, error) {
+	return client.sendAuthenticatedHttpRequest(url, "POST", request)
+}
+
+func (client InvestmentManagerHTTPClient) sendAuthenticatedHttpRequest(url, method string, request []byte) ([]byte, error) {
 	emptyResponse := []byte{}
 
-	jwt, err := getJWT(url, httpMethod)
+	jwt, err := getJWT(url, method)
 	if err != nil {
+		fmt.Println("Failed to get jwt")
 		return emptyResponse, err
 	}
 
-	req, err := http.NewRequest(httpMethod, url, nil)
+	var req *http.Request
+	if method == "GET" {
+		req, err = http.NewRequest(method, url, nil)
+	} else if method == "POST" {
+		req, err = http.NewRequest(method, url, bytes.NewBuffer(request))
+	} else {
+		return emptyResponse, errors.New(fmt.Sprintf("Unsupported http verb, recieved %s", method))
+	}
+
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println("Failed to build request")
 		return emptyResponse, err
 	}
 
@@ -40,7 +57,7 @@ func (client InvestmentManagerHTTPClient) Get(url string) ([]byte, error) {
 	res, err := client.HttpClient.Do(req)
 
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println("Failed to get response")
 		return emptyResponse, err
 	}
 
@@ -49,7 +66,7 @@ func (client InvestmentManagerHTTPClient) Get(url string) ([]byte, error) {
 	body, err := ioutil.ReadAll(res.Body)
 
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println("Failed to read response")
 		return emptyResponse, err
 	}
 
