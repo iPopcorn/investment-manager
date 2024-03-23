@@ -10,3 +10,8 @@ tasks:
         desc: Run the app
         cmds:
         - GOFLAGS=-mod=mod go run main.go
+    
+    build-server:
+        desc: Build the server
+        cmds:
+        - GOFLAGS=-mod=mod go build -o bin/server server/main/server.go
