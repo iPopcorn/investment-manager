@@ -29,7 +29,7 @@ func TestGet(t *testing.T) {
 	t.Run("Gets data from the given URL", func(t *testing.T) {
 		expected := "Called Do()"
 		httpClient := testHttpClient{getResponse: expected}
-		testClient := infrastructure.InvestmentManagerHTTPClient{
+		testClient := infrastructure.InvestmentManagerExternalHttpClient{
 			HttpClient: httpClient,
 		}
 		data, err := testClient.Get("https://api.coinbase.com/api/v3/brokerage/portfolios")
@@ -47,7 +47,7 @@ func TestGet(t *testing.T) {
 
 	t.Run("Returns error if url is invalid", func(t *testing.T) {
 		httpClient := testHttpClient{}
-		testClient := infrastructure.InvestmentManagerHTTPClient{
+		testClient := infrastructure.InvestmentManagerExternalHttpClient{
 			HttpClient: httpClient,
 		}
 		data, err := testClient.Get("Invalid URL")

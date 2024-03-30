@@ -59,7 +59,7 @@ func getPortfolioDetails(portfolioName string) (*types.PortfolioDetailsResponse,
 
 	url := "https://api.coinbase.com/api/v3/brokerage/portfolios/" + portfolioID
 
-	httpClient := infrastructure.InvestmentManagerHTTPClient{
+	httpClient := infrastructure.InvestmentManagerExternalHttpClient{
 		HttpClient: &http.Client{},
 	}
 

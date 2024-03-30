@@ -37,7 +37,7 @@ func displayCreatedPortfolio(newPortfolio *types.PortfolioCreatedResponse) {
 func createPortfolio(name string) (*types.PortfolioCreatedResponse, error) {
 	url := "https://api.coinbase.com/api/v3/brokerage/portfolios/"
 
-	httpClient := infrastructure.InvestmentManagerHTTPClient{
+	httpClient := infrastructure.InvestmentManagerExternalHttpClient{
 		HttpClient: &http.Client{},
 	}
 

@@ -31,7 +31,7 @@ func getTestServer(expectedResponse []byte) *InvestmentManagerHTTPServer {
 	testHttpClient := testHttpClient{
 		getResponse: expectedResponse,
 	}
-	testInvestmentManagerHTTPClient := infrastructure.InvestmentManagerHTTPClient{
+	testInvestmentManagerHTTPClient := infrastructure.InvestmentManagerExternalHttpClient{
 		HttpClient: testHttpClient,
 	}
 	return &InvestmentManagerHTTPServer{

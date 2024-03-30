@@ -8,10 +8,11 @@ import (
 )
 
 type InvestmentManagerHTTPServer struct {
-	client infrastructure.InvestmentManagerHTTPClient
+	client infrastructure.InvestmentManagerExternalHttpClient
 }
 
 func (s *InvestmentManagerHTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	log.Printf("Received request: %v\n", r)
 	w.Header().Set("Content-Type", "application/json")
 	url := "https://api.coinbase.com/api/v3/brokerage/portfolios"
 	resp, err := s.client.Get(url)
@@ -28,11 +29,13 @@ func (s *InvestmentManagerHTTPServer) ServeHTTP(w http.ResponseWriter, r *http.R
 		w.WriteHeader(http.StatusInternalServerError)
 	}
 
+	log.Printf("Request handled successfully!")
+
 	return
 }
 
 func GetInvestmentManagerHTTPServer() *InvestmentManagerHTTPServer {
-	httpClient := infrastructure.InvestmentManagerHTTPClient{
+	httpClient := infrastructure.InvestmentManagerExternalHttpClient{
 		HttpClient: &http.Client{},
 	}
 

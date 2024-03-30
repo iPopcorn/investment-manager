@@ -3,7 +3,6 @@ package handlers
 import (
 	"encoding/json"
 	"fmt"
-	"net/http"
 
 	"github.com/iPopcorn/investment-manager/infrastructure"
 	"github.com/iPopcorn/investment-manager/types"
@@ -35,13 +34,10 @@ func displayPortfolios(portfolioResponse *types.PortfolioResponse) {
 }
 
 func listPortfolios() (*types.PortfolioResponse, error) {
-	url := "https://api.coinbase.com/api/v3/brokerage/portfolios"
+	path := "/portfolios"
+	internalHttpClient := infrastructure.GetInvestmentManagerInternalHttpClient()
 
-	httpClient := infrastructure.InvestmentManagerHTTPClient{
-		HttpClient: &http.Client{},
-	}
-
-	httpResponse, err := httpClient.Get(url)
+	httpResponse, err := internalHttpClient.Get(path)
 
 	if err != nil {
 		return nil, fmt.Errorf("Error getting portfolios from api: \n%v\n", err)
