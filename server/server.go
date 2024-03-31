@@ -39,22 +39,42 @@ func GetInvestmentManagerHTTPServer() *InvestmentManagerHTTPServer {
 func (s *InvestmentManagerHTTPServer) handlePortfolio(w http.ResponseWriter, r *http.Request, args []string) {
 	w.Header().Set("Content-Type", "application/json")
 	url := "https://api.coinbase.com/api/v3/brokerage/portfolios"
-	resp, err := s.client.Get(url)
 
+	if len(args) == 1 {
+		portfolioUUID := args[0]
+		url = url + "/" + portfolioUUID
+		resp, err := s.client.Get(url)
+
+		if err != nil {
+			log.Printf("Error retrieving portfolio details from URL: %q\nError: %v", url, err)
+		}
+
+		writeResponse(w, resp, err)
+	} else {
+		resp, err := s.client.Get(url)
+
+		if err != nil {
+			log.Printf("Error retrieving portfolios from URL: %q\nError: %v", url, err)
+		}
+
+		writeResponse(w, resp, err)
+	}
+
+	log.Printf("Request handled successfully!")
+}
+
+func writeResponse(w http.ResponseWriter, response []byte, err error) {
 	if err != nil {
-		log.Printf("Error retrieving portfolios from URL: %q\nError: %v", url, err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	_, err = w.Write(resp)
+	_, err = w.Write(response)
 
 	if err != nil {
 		log.Println("Failed to write response to writer")
 		w.WriteHeader(http.StatusInternalServerError)
 	}
-
-	log.Printf("Request handled successfully!")
 }
 
 func getRouteAndArgsFromPath(path string) (string, []string) {
