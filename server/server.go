@@ -1,6 +1,7 @@
 package server
 
 import (
+	"io/ioutil"
 	"log"
 	"net/http"
 	"strings"
@@ -40,24 +41,41 @@ func (s *InvestmentManagerHTTPServer) handlePortfolio(w http.ResponseWriter, r *
 	w.Header().Set("Content-Type", "application/json")
 	url := "https://api.coinbase.com/api/v3/brokerage/portfolios"
 
-	if len(args) == 1 {
-		portfolioUUID := args[0]
-		url = url + "/" + portfolioUUID
-		resp, err := s.client.Get(url)
+	if r.Method == http.MethodPost {
+		body := r.Body
+
+		defer body.Close()
+
+		bodyData, err := ioutil.ReadAll(body)
 
 		if err != nil {
-			log.Printf("Error retrieving portfolio details from URL: %q\nError: %v", url, err)
+			log.Printf("Failed to read body from request: %v\n", err)
+			writeResponse(w, nil, err)
 		}
+
+		resp, err := s.client.Post(url, bodyData)
 
 		writeResponse(w, resp, err)
 	} else {
-		resp, err := s.client.Get(url)
+		if len(args) == 1 {
+			portfolioUUID := args[0]
+			url = url + "/" + portfolioUUID
+			resp, err := s.client.Get(url)
 
-		if err != nil {
-			log.Printf("Error retrieving portfolios from URL: %q\nError: %v", url, err)
+			if err != nil {
+				log.Printf("Error retrieving portfolio details from URL: %q\nError: %v", url, err)
+			}
+
+			writeResponse(w, resp, err)
+		} else {
+			resp, err := s.client.Get(url)
+
+			if err != nil {
+				log.Printf("Error retrieving portfolios from URL: %q\nError: %v", url, err)
+			}
+
+			writeResponse(w, resp, err)
 		}
-
-		writeResponse(w, resp, err)
 	}
 
 	log.Printf("Request handled successfully!")

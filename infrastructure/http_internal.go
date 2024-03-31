@@ -25,6 +25,11 @@ func (c *InvestmentManagerInternalHttpClient) Get(path string) ([]byte, error) {
 	return c.sendInternalHttpRequest(url, "GET", nil)
 }
 
+func (c *InvestmentManagerInternalHttpClient) Post(path string, request []byte) ([]byte, error) {
+	url := c.baseURL + path
+	return c.sendInternalHttpRequest(url, "POST", request)
+}
+
 func (c *InvestmentManagerInternalHttpClient) sendInternalHttpRequest(url, method string, request []byte) ([]byte, error) {
 	emptyResponse := []byte{}
 

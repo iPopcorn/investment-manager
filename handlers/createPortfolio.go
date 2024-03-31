@@ -3,7 +3,6 @@ package handlers
 import (
 	"encoding/json"
 	"fmt"
-	"net/http"
 
 	"github.com/iPopcorn/investment-manager/infrastructure"
 	"github.com/iPopcorn/investment-manager/types"
@@ -35,17 +34,14 @@ func displayCreatedPortfolio(newPortfolio *types.PortfolioCreatedResponse) {
 }
 
 func createPortfolio(name string) (*types.PortfolioCreatedResponse, error) {
-	url := "https://api.coinbase.com/api/v3/brokerage/portfolios/"
-
-	httpClient := infrastructure.InvestmentManagerExternalHttpClient{
-		HttpClient: &http.Client{},
-	}
+	path := "/portfolios"
+	internalClient := infrastructure.GetInvestmentManagerInternalHttpClient()
 
 	request := []byte(fmt.Sprintf(`{
 		"name": "%s"
 	}`, name))
 
-	httpResponse, err := httpClient.Post(url, request)
+	httpResponse, err := internalClient.Post(path, request)
 
 	if err != nil {
 		return nil, fmt.Errorf("Error creating portfolio: \n%v\n", err)
