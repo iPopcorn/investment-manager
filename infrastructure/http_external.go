@@ -15,19 +15,25 @@ type HttpClient interface {
 	Do(req *http.Request) (*http.Response, error)
 }
 
-type InvestmentManagerHTTPClient struct {
+type InvestmentManagerExternalHttpClient struct {
 	HttpClient HttpClient
 }
 
-func (client InvestmentManagerHTTPClient) Get(url string) ([]byte, error) {
+func GetInvestmentManagerExternalHttpClient() *InvestmentManagerExternalHttpClient {
+	return &InvestmentManagerExternalHttpClient{
+		HttpClient: &http.Client{},
+	}
+}
+
+func (client InvestmentManagerExternalHttpClient) Get(url string) ([]byte, error) {
 	return client.sendAuthenticatedHttpRequest(url, "GET", nil)
 }
 
-func (client InvestmentManagerHTTPClient) Post(url string, request []byte) ([]byte, error) {
+func (client InvestmentManagerExternalHttpClient) Post(url string, request []byte) ([]byte, error) {
 	return client.sendAuthenticatedHttpRequest(url, "POST", request)
 }
 
-func (client InvestmentManagerHTTPClient) sendAuthenticatedHttpRequest(url, method string, request []byte) ([]byte, error) {
+func (client InvestmentManagerExternalHttpClient) sendAuthenticatedHttpRequest(url, method string, request []byte) ([]byte, error) {
 	emptyResponse := []byte{}
 
 	jwt, err := getJWT(url, method)

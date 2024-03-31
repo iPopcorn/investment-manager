@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"net/http"
 	"strings"
 
 	"github.com/iPopcorn/investment-manager/infrastructure"
@@ -56,17 +55,13 @@ func getPortfolioDetails(portfolioName string) (*types.PortfolioDetailsResponse,
 	}
 
 	portfolioID := foundPortfolio.Uuid
+	path := "/portfolios/" + portfolioID
 
-	url := "https://api.coinbase.com/api/v3/brokerage/portfolios/" + portfolioID
-
-	httpClient := infrastructure.InvestmentManagerHTTPClient{
-		HttpClient: &http.Client{},
-	}
-
-	httpResponse, err := httpClient.Get(url)
+	internalClient := infrastructure.GetInvestmentManagerInternalHttpClient()
+	httpResponse, err := internalClient.Get(path)
 
 	if err != nil {
-		return nil, fmt.Errorf("Error getting portfolios from api: \n%v\n", err)
+		return nil, fmt.Errorf("Error getting portfolio details from api: \n%v\n", err)
 	}
 
 	err = handleErrorResponse(httpResponse)
@@ -78,6 +73,11 @@ func getPortfolioDetails(portfolioName string) (*types.PortfolioDetailsResponse,
 
 	var portfolioDetailsResponse types.PortfolioDetailsResponse
 	err = json.Unmarshal(httpResponse, &portfolioDetailsResponse)
+
+	if err != nil {
+		fmt.Println("failed to parse response")
+		return nil, err
+	}
 
 	return &portfolioDetailsResponse, nil
 }

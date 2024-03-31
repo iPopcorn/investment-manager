@@ -31,7 +31,7 @@ func getTestServer(expectedResponse []byte) *InvestmentManagerHTTPServer {
 	testHttpClient := testHttpClient{
 		getResponse: expectedResponse,
 	}
-	testInvestmentManagerHTTPClient := infrastructure.InvestmentManagerHTTPClient{
+	testInvestmentManagerHTTPClient := infrastructure.InvestmentManagerExternalHttpClient{
 		HttpClient: testHttpClient,
 	}
 	return &InvestmentManagerHTTPServer{
@@ -96,6 +96,22 @@ func TestGETPortfolios(t *testing.T) {
 
 		if portfolio2.Deleted != actualPortfolio2.Deleted {
 			t.Errorf("Expected deleted: %t actual deleted: %t", portfolio2.Deleted, actualPortfolio2.Deleted)
+		}
+	})
+
+	t.Run("Handles path not found", func(t *testing.T) {
+		request, _ := http.NewRequest(http.MethodGet, "/portfolio", nil)
+		response := httptest.NewRecorder()
+
+		server := getTestServer(nil)
+
+		server.ServeHTTP(response, request)
+
+		actual := response.Result().StatusCode
+		expected := http.StatusNotFound
+
+		if actual != expected {
+			t.Fatalf("Expected: %d Actual: %d", expected, actual)
 		}
 	})
 }
