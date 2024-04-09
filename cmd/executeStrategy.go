@@ -21,7 +21,7 @@ example: 'execute-strategy test hodl eth'`,
 }
 
 func init() {
-	internalHttpClient := infrastructure.GetInvestmentManagerInternalHttpClient()
+	internalHttpClient := infrastructure.GetDefaultInvestmentManagerInternalHttpClient()
 
 	executeStrategyHandler := handlers.ExecuteStrategyHandlerFactory(internalHttpClient)
 	executeStrategyCmd.RunE = executeStrategyHandler

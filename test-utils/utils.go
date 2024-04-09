@@ -2,6 +2,8 @@ package testutils
 
 import (
 	"bytes"
+	"io"
+	"net/http"
 
 	"github.com/iPopcorn/investment-manager/cmd"
 )
@@ -22,4 +24,19 @@ func ExecuteCommand(args []string) error {
 
 	// execute command
 	return testCmd.Execute()
+}
+
+type TestHttpClient struct {
+	GetResponse string
+}
+
+type TestReader struct {
+	data []byte
+}
+
+func (testClient TestHttpClient) Do(req *http.Request) (*http.Response, error) {
+	resp := http.Response{
+		Body: io.NopCloser(bytes.NewBufferString(testClient.GetResponse)),
+	}
+	return &resp, nil
 }

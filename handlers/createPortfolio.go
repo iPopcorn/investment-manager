@@ -35,7 +35,7 @@ func displayCreatedPortfolio(newPortfolio *types.PortfolioCreatedResponse) {
 
 func createPortfolio(name string) (*types.PortfolioCreatedResponse, error) {
 	path := "/portfolios"
-	internalClient := infrastructure.GetInvestmentManagerInternalHttpClient()
+	internalClient := infrastructure.GetDefaultInvestmentManagerInternalHttpClient()
 
 	request := []byte(fmt.Sprintf(`{
 		"name": "%s"

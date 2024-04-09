@@ -35,7 +35,7 @@ func displayPortfolios(portfolioResponse *types.PortfolioResponse) {
 
 func listPortfolios() (*types.PortfolioResponse, error) {
 	path := "/portfolios"
-	internalHttpClient := infrastructure.GetInvestmentManagerInternalHttpClient()
+	internalHttpClient := infrastructure.GetDefaultInvestmentManagerInternalHttpClient()
 
 	httpResponse, err := internalHttpClient.Get(path)
 

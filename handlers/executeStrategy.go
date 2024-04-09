@@ -9,7 +9,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func ExecuteStrategyHandlerFactory(client *infrastructure.InvestmentManagerInternalHttpClient) func(cmd *cobra.Command, args []string) error {
+func ExecuteStrategyHandlerFactory(client *infrastructure.InvestmentManagerInternalHttpClient) CobraCommandHandler {
 	return func(cmd *cobra.Command, args []string) error {
 		fmt.Printf("ExecuteStrategy called\nargs: %v", args)
 

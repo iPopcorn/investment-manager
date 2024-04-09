@@ -57,7 +57,7 @@ func getPortfolioDetails(portfolioName string) (*types.PortfolioDetailsResponse,
 	portfolioID := foundPortfolio.Uuid
 	path := "/portfolios/" + portfolioID
 
-	internalClient := infrastructure.GetInvestmentManagerInternalHttpClient()
+	internalClient := infrastructure.GetDefaultInvestmentManagerInternalHttpClient()
 	httpResponse, err := internalClient.Get(path)
 
 	if err != nil {
