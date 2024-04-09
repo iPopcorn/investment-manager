@@ -87,6 +87,8 @@ func writeResponse(w http.ResponseWriter, response []byte, err error) {
 		return
 	}
 
+	log.Printf("Response: \n%s", string(response))
+
 	_, err = w.Write(response)
 
 	if err != nil {

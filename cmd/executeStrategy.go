@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"github.com/iPopcorn/investment-manager/handlers"
+	"github.com/iPopcorn/investment-manager/infrastructure"
 	"github.com/spf13/cobra"
 )
 
@@ -14,10 +15,16 @@ Use 'portfolio' command to see list of portfolios.
 Supported strategies:
 HODL
 Supported currencies:
-ETH`,
-	RunE: handlers.ExecuteStrategy,
+ETH
+example: 'execute-strategy test hodl eth'`,
+	RunE: nil,
 }
 
 func init() {
+	internalHttpClient := infrastructure.GetInvestmentManagerInternalHttpClient()
+
+	executeStrategyHandler := handlers.ExecuteStrategyHandlerFactory(internalHttpClient)
+	executeStrategyCmd.RunE = executeStrategyHandler
+
 	rootCmd.AddCommand(executeStrategyCmd)
 }
