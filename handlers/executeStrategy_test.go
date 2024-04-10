@@ -9,15 +9,8 @@ import (
 
 	"github.com/iPopcorn/investment-manager/handlers"
 	"github.com/iPopcorn/investment-manager/infrastructure"
-	"github.com/spf13/cobra"
+	testutils "github.com/iPopcorn/investment-manager/test-utils"
 )
-
-var testCmd = &cobra.Command{
-	Use:   "test",
-	Short: "test command",
-	Long:  `dummy command to use for testing`,
-	RunE:  nil,
-}
 
 type TestExecuteStrategyHttpClient struct {
 	counter int
@@ -28,7 +21,6 @@ type TestReader struct {
 }
 
 func (testClient *TestExecuteStrategyHttpClient) Do(req *http.Request) (*http.Response, error) {
-	fmt.Printf("Do()\ncounter: %d\n", testClient.counter)
 	testClient.counter = testClient.counter + 1
 	resp := http.Response{
 		Body: io.NopCloser(bytes.NewBufferString("")),
@@ -49,13 +41,13 @@ func TestExecuteStrategy(t *testing.T) {
 		testHandler := handlers.ExecuteStrategyHandlerFactory(testInternalClient)
 		args := []string{"test", "hodl", "eth"}
 
-		err := testHandler(testCmd, args)
+		err := testHandler(testutils.TestCmd, args)
 
 		if err != nil {
 			t.Fatalf("Received error but did not expect one\n%v", err)
 		}
 
-		err = testHandler(testCmd, args)
+		err = testHandler(testutils.TestCmd, args)
 
 		if err == nil {
 			t.Fatalf("Expected error but did not receive one")

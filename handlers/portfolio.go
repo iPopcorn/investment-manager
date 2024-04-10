@@ -9,17 +9,19 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func HandlePortfolio(cmd *cobra.Command, args []string) error {
-	fmt.Printf("portfolio called\nargs: %v\n", args)
-	fmt.Printf("listing portfolios...\n")
-	portfolios, err := listPortfolios()
+func HandlePortfolioFactory(client *infrastructure.InvestmentManagerInternalHttpClient) CobraCommandHandler {
+	return func(cmd *cobra.Command, args []string) error {
+		fmt.Printf("portfolio called\nargs: %v\n", args)
+		fmt.Printf("listing portfolios...\n")
+		portfolios, err := listPortfolios(client)
 
-	if err != nil {
-		return err
+		if err != nil {
+			return err
+		}
+
+		displayPortfolios(portfolios)
+		return nil
 	}
-
-	displayPortfolios(portfolios)
-	return nil
 }
 
 func displayPortfolios(portfolioResponse *types.PortfolioResponse) {
@@ -33,11 +35,10 @@ func displayPortfolios(portfolioResponse *types.PortfolioResponse) {
 	}
 }
 
-func listPortfolios() (*types.PortfolioResponse, error) {
+func listPortfolios(client *infrastructure.InvestmentManagerInternalHttpClient) (*types.PortfolioResponse, error) {
 	path := "/portfolios"
-	internalHttpClient := infrastructure.GetDefaultInvestmentManagerInternalHttpClient()
 
-	httpResponse, err := internalHttpClient.Get(path)
+	httpResponse, err := client.Get(path)
 
 	if err != nil {
 		return nil, fmt.Errorf("Error getting portfolios from api: \n%v\n", err)

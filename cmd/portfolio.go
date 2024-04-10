@@ -7,6 +7,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/iPopcorn/investment-manager/handlers"
+	"github.com/iPopcorn/investment-manager/infrastructure"
 )
 
 // portfolioCmd represents the portfolio command
@@ -15,10 +16,14 @@ var portfolioCmd = &cobra.Command{
 	Short: "display information about your portfolio(s)",
 	Long: `Display information about your portfolio(s)
 Calling 'portfolio' will list all portfolios associated with your account`,
-	RunE: handlers.HandlePortfolio,
+	RunE: nil,
 }
 
 func init() {
+	client := infrastructure.GetDefaultInvestmentManagerInternalHttpClient()
+	handler := handlers.HandlePortfolioFactory(client)
+	portfolioCmd.RunE = handler
+
 	rootCmd.AddCommand(portfolioCmd)
 
 	// Here you will define your flags and configuration settings.

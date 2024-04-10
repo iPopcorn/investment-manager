@@ -6,7 +6,15 @@ import (
 	"net/http"
 
 	"github.com/iPopcorn/investment-manager/cmd"
+	"github.com/spf13/cobra"
 )
+
+var TestCmd = &cobra.Command{
+	Use:   "test",
+	Short: "test command",
+	Long:  `dummy command to use for testing`,
+	RunE:  nil,
+}
 
 func ExecuteCommand(args []string) error {
 	// capture output in program by using a buffer
