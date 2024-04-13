@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/iPopcorn/investment-manager/infrastructure"
+	"github.com/iPopcorn/investment-manager/types"
 )
 
 type InvestmentManagerHTTPServer struct {
@@ -19,9 +20,10 @@ func (s *InvestmentManagerHTTPServer) ServeHTTP(w http.ResponseWriter, r *http.R
 	route, args := getRouteAndArgsFromPath(r.URL.Path)
 
 	switch route {
-	case "portfolios":
+	case string(types.Portfolios):
 		s.handlePortfolio(w, r, args)
 		return
+	case string(types.ExecuteStrategy):
 	default:
 		log.Printf("Route not found: %q\n", route)
 		w.WriteHeader(http.StatusNotFound)

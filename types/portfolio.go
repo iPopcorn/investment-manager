@@ -14,10 +14,12 @@ type ErrorResponse struct {
 }
 
 type Portfolio struct {
-	Name    string `json:"name"`
-	Uuid    string `json:"uuid"`
-	Type    string `json:"type"`
-	Deleted bool   `json:"deleted"`
+	Name               string `json:"name"`
+	Uuid               string `json:"uuid"`
+	Type               string `json:"type"`
+	Deleted            bool   `json:"deleted"`
+	CurrentStrategy    *Strategy
+	PreviousStrategies *[]Strategy
 }
 
 type PortfolioDetailsResponse struct {
