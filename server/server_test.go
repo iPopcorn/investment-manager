@@ -28,16 +28,14 @@ func (testClient testHttpClient) Do(req *http.Request) (*http.Response, error) {
 	return &resp, nil
 }
 
-func getTestServer(expectedResponse, initialState []byte) *InvestmentManagerHTTPServer {
+func getTestServer(expectedResponse []byte, initialState *types.State) *InvestmentManagerHTTPServer {
 	testHttpClient := testHttpClient{
 		getResponse: expectedResponse,
 	}
 	testInvestmentManagerHTTPClient := infrastructure.InvestmentManagerExternalHttpClient{
 		HttpClient: testHttpClient,
 	}
-	return &InvestmentManagerHTTPServer{
-		client: testInvestmentManagerHTTPClient,
-	}
+	return InvestmentManagerHttpServerFactory(&testInvestmentManagerHTTPClient, initialState)
 }
 
 func TestGETPortfolios(t *testing.T) {
@@ -141,15 +139,21 @@ func TestExecuteStrategy(t *testing.T) {
 			Portfolios:  nil,
 		}
 
-		serializedInitialState, err := json.Marshal(initialState)
+		testServer := getTestServer(nil, initialState)
 
-		if err != nil {
-			t.Fatalf("Failed to serialize initial state\n%v", err)
+		body := types.ExecuteStrategyRequest{
+			Portfolio: testPortfolio.Name,
+			Strategy:  "HODL",
+			Currency:  "ETH",
 		}
 
-		testServer := getTestServer(nil, serializedInitialState)
+		serializedBody, err := json.Marshal(body)
 
-		request, err := http.NewRequest(http.MethodPost, "/"+string(types.ExecuteStrategy), nil)
+		if err != nil {
+			t.Fatalf("Failed to create body for request\n%v", err)
+		}
+
+		request, err := http.NewRequest(http.MethodPost, "/"+string(types.ExecuteStrategy), bytes.NewReader(serializedBody))
 
 		if err != nil {
 			t.Fatalf("Failed to create http request\n%v", err)
@@ -222,7 +226,7 @@ func TestExecuteStrategy(t *testing.T) {
 		}
 
 		if actualPortfolio.CurrentStrategy == nil {
-			t.Errorf(unexpectedUpdate + "no current strategy found")
+			t.Fatalf(unexpectedUpdate + "no current strategy found")
 		}
 
 		if actualPortfolio.PreviousStrategies != nil {
@@ -235,7 +239,7 @@ func TestExecuteStrategy(t *testing.T) {
 		assertStringEquals("ETH", actualCurrentStrategy.Currency, t)
 
 		if actualCurrentStrategy.OpenOffers == nil {
-			t.Error(unexpectedUpdate + "no open offers found")
+			t.Fatalf(unexpectedUpdate + "no open offers found")
 		}
 
 		if actualCurrentStrategy.ClosedOffers != nil {
@@ -244,7 +248,7 @@ func TestExecuteStrategy(t *testing.T) {
 
 		// Place a buy order for the given currency
 		if len(actualCurrentStrategy.OpenOffers) < 1 {
-			t.Errorf(unexpectedUpdate + "open offers is empty")
+			t.Fatalf(unexpectedUpdate + "open offers is empty")
 		}
 
 		if len(actualCurrentStrategy.OpenOffers) > 1 {
