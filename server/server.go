@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/iPopcorn/investment-manager/infrastructure"
+	"github.com/iPopcorn/investment-manager/server/util"
 	"github.com/iPopcorn/investment-manager/types"
 )
 
@@ -69,12 +70,12 @@ func (s *InvestmentManagerHTTPServer) handlePortfolio(w http.ResponseWriter, r *
 
 		if err != nil {
 			log.Printf("Failed to read body from request: %v\n", err)
-			writeResponse(w, nil, err)
+			util.WriteResponse(w, nil, err)
 		}
 
 		resp, err := s.client.Post(url, bodyData)
 
-		writeResponse(w, resp, err)
+		util.WriteResponse(w, resp, err)
 	} else {
 		if len(args) == 1 {
 			portfolioUUID := args[0]
@@ -85,7 +86,7 @@ func (s *InvestmentManagerHTTPServer) handlePortfolio(w http.ResponseWriter, r *
 				log.Printf("Error retrieving portfolio details from URL: %q\nError: %v", url, err)
 			}
 
-			writeResponse(w, resp, err)
+			util.WriteResponse(w, resp, err)
 		} else {
 			resp, err := s.client.Get(url)
 
@@ -93,7 +94,7 @@ func (s *InvestmentManagerHTTPServer) handlePortfolio(w http.ResponseWriter, r *
 				log.Printf("Error retrieving portfolios from URL: %q\nError: %v", url, err)
 			}
 
-			writeResponse(w, resp, err)
+			util.WriteResponse(w, resp, err)
 		}
 	}
 
@@ -101,17 +102,18 @@ func (s *InvestmentManagerHTTPServer) handlePortfolio(w http.ResponseWriter, r *
 }
 
 func (s *InvestmentManagerHTTPServer) handleExecuteStrategy(w http.ResponseWriter, r *http.Request, args []string) {
-	if r.Method != http.MethodPost {
-		err := fmt.Errorf("Invalid http method, wanted %s got %s", http.MethodPost, r.Method)
+	handlerName := "handleExecuteStrategy: "
 
-		writeResponse(w, nil, err)
+	if r.Method != http.MethodPost {
+		util.WriteResponse(w, nil, fmt.Errorf(handlerName+"Invalid http method, wanted %s got %s", http.MethodPost, r.Method))
+
 		return
 	}
 
 	now := time.Now()
+
 	// TODO: Use correct last updated
 	s.state.LastUpdated = now.Add(time.Second * 5).Format(time.RFC3339)
-
 	body := r.Body
 
 	defer body.Close()
@@ -119,20 +121,52 @@ func (s *InvestmentManagerHTTPServer) handleExecuteStrategy(w http.ResponseWrite
 	bodyData, err := ioutil.ReadAll(body)
 
 	if err != nil {
-		log.Printf("Failed to read body from request: %v\n", err)
-		writeResponse(w, nil, err)
+		log.Printf(handlerName+"Failed to read body from request: %v\n", err)
+		util.WriteResponse(w, nil, err)
+
+		return
 	}
 
 	var requestBody types.ExecuteStrategyRequest
 
 	err = json.Unmarshal(bodyData, &requestBody)
 
+	if err != nil {
+		log.Printf(handlerName + "Failed to deserialize request")
+		util.WriteResponse(w, nil, err)
+
+		return
+	}
+
+	userPortfolios, err := util.ListPortfolios(&s.client)
+
+	if err != nil || len(userPortfolios.Portfolios) == 0 {
+		log.Printf(handlerName + "Failed to get portfolios from coinbase")
+		util.WriteResponse(w, nil, err)
+
+		return
+	}
+
+	var selectedPortfolio *types.Portfolio
+
+	for _, p := range userPortfolios.Portfolios {
+		if p.Name == requestBody.Portfolio {
+			selectedPortfolio = &p
+		}
+	}
+
+	if selectedPortfolio == nil {
+		util.WriteResponse(w, nil, fmt.Errorf(handlerName+"Could not find requested portfolio\nGiven: %q", requestBody.Portfolio))
+
+		return
+	}
+
 	s.state.Portfolios = []types.Portfolio{
 		{
-			Name:    requestBody.Portfolio,
-			Uuid:    "test-portfolio-id", // TODO: Get portfolio data from coinbase
-			Type:    "test",              // TODO: Get portfolio data from coinbase
-			Deleted: false,               // TODO: Get portfolio data from coinbase
+			Name:    selectedPortfolio.Name,
+			Uuid:    selectedPortfolio.Uuid,
+			Type:    selectedPortfolio.Type,
+			Deleted: selectedPortfolio.Deleted,
 			CurrentStrategy: &types.Strategy{
 				Name:     requestBody.Strategy,
 				Currency: requestBody.Currency,
@@ -148,8 +182,8 @@ func (s *InvestmentManagerHTTPServer) handleExecuteStrategy(w http.ResponseWrite
 							PostOnly:   true,                                          // TODO: set post only conditionally
 							EndTime:    now.Add(time.Minute * 5).Format(time.RFC3339), // TODO: set conditionally
 						},
-						SelfTradePreventionId: "test",              // TODO: use correct value
-						RetailPortfolioId:     "test-portfolio-id", // TODO confirm correct + use value from actual portfolio
+						SelfTradePreventionId: "test",                 // TODO: use correct value
+						RetailPortfolioId:     selectedPortfolio.Uuid, // TODO confirm correct
 					},
 				},
 				ClosedOffers: nil,
@@ -158,23 +192,7 @@ func (s *InvestmentManagerHTTPServer) handleExecuteStrategy(w http.ResponseWrite
 		},
 	}
 
-	writeResponse(w, []byte("OK"), nil)
-}
-
-func writeResponse(w http.ResponseWriter, response []byte, err error) {
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
-	log.Printf("Response: \n%s", string(response))
-
-	_, err = w.Write(response)
-
-	if err != nil {
-		log.Println("Failed to write response to writer")
-		w.WriteHeader(http.StatusInternalServerError)
-	}
+	util.WriteResponse(w, []byte("OK"), nil)
 }
 
 func getRouteAndArgsFromPath(path string) (string, []string) {

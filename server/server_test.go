@@ -132,6 +132,17 @@ func TestExecuteStrategy(t *testing.T) {
 			CurrentStrategy:    nil,
 			PreviousStrategies: nil,
 		}
+
+		testPortfolioResponse := &types.PortfolioResponse{
+			Portfolios: []types.Portfolio{*testPortfolio},
+		}
+
+		serializedResponse, err := json.Marshal(testPortfolioResponse)
+
+		if err != nil {
+			t.Fatalf("Failed to create mock response for test server\n%v", err)
+		}
+
 		timeStart := time.Now()
 		formattedTimeStart := timeStart.Format(time.RFC3339)
 		initialState := &types.State{
@@ -139,7 +150,7 @@ func TestExecuteStrategy(t *testing.T) {
 			Portfolios:  nil,
 		}
 
-		testServer := getTestServer(nil, initialState)
+		testServer := getTestServer(serializedResponse, initialState)
 
 		body := types.ExecuteStrategyRequest{
 			Portfolio: testPortfolio.Name,

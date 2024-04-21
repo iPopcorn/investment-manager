@@ -1,11 +1,11 @@
 package handlers
 
 import (
-	"encoding/json"
 	"fmt"
 
 	"github.com/iPopcorn/investment-manager/infrastructure"
 	"github.com/iPopcorn/investment-manager/types"
+	"github.com/iPopcorn/investment-manager/types/mappers"
 	"github.com/spf13/cobra"
 )
 
@@ -44,8 +44,5 @@ func listPortfolios(client *infrastructure.InvestmentManagerInternalHttpClient) 
 		return nil, fmt.Errorf("Error getting portfolios from api: \n%v\n", err)
 	}
 
-	var resp types.PortfolioResponse
-	json.Unmarshal(httpResponse, &resp)
-
-	return &resp, nil
+	return mappers.MapPortfolioResponse(httpResponse)
 }
