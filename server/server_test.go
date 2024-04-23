@@ -21,6 +21,12 @@ type testReader struct {
 	data []byte
 }
 
+type testServerArgs struct {
+	expectedResponse []byte
+	mockRepo         *StateRepository
+	chans            []chan bool
+}
+
 func (testClient testHttpClient) Do(req *http.Request) (*http.Response, error) {
 	resp := http.Response{
 		Body: io.NopCloser(bytes.NewReader(testClient.getResponse)),
@@ -28,14 +34,21 @@ func (testClient testHttpClient) Do(req *http.Request) (*http.Response, error) {
 	return &resp, nil
 }
 
-func getTestServer(expectedResponse []byte, initialState *types.State) *InvestmentManagerHTTPServer {
+func getTestServer(args *testServerArgs) *InvestmentManagerHTTPServer {
 	testHttpClient := testHttpClient{
-		getResponse: expectedResponse,
+		getResponse: args.expectedResponse,
 	}
 	testInvestmentManagerHTTPClient := infrastructure.InvestmentManagerExternalHttpClient{
 		HttpClient: testHttpClient,
 	}
-	return InvestmentManagerHttpServerFactory(&testInvestmentManagerHTTPClient, initialState)
+
+	serverArgs := InvestmentManagerHTTPServerArgs{
+		HttpClient:      &testInvestmentManagerHTTPClient,
+		StateRepository: args.mockRepo,
+		Channels:        args.chans,
+	}
+
+	return InvestmentManagerHttpServerFactory(serverArgs)
 }
 
 func TestGETPortfolios(t *testing.T) {
@@ -64,7 +77,11 @@ func TestGETPortfolios(t *testing.T) {
 		request, _ := http.NewRequest(http.MethodGet, "/portfolios", nil)
 		response := httptest.NewRecorder()
 
-		server := getTestServer(serializedExpectedResponse, nil)
+		testServerArgs := &testServerArgs{
+			expectedResponse: serializedExpectedResponse,
+		}
+
+		server := getTestServer(testServerArgs)
 
 		server.ServeHTTP(response, request)
 
@@ -101,8 +118,9 @@ func TestGETPortfolios(t *testing.T) {
 	t.Run("Handles path not found", func(t *testing.T) {
 		request, _ := http.NewRequest(http.MethodGet, "/portfolio", nil)
 		response := httptest.NewRecorder()
+		testServerArgs := &testServerArgs{}
 
-		server := getTestServer(nil, nil)
+		server := getTestServer(testServerArgs)
 
 		server.ServeHTTP(response, request)
 
@@ -150,7 +168,18 @@ func TestExecuteStrategy(t *testing.T) {
 			Portfolios:  nil,
 		}
 
-		testServer := getTestServer(serializedResponse, initialState)
+		testStateRepo := StateRepositoryFactory(*initialState)
+
+		strategyExecutedChannel := make(chan bool)
+		testChans := []chan bool{strategyExecutedChannel}
+
+		testServerArgs := &testServerArgs{
+			expectedResponse: serializedResponse,
+			mockRepo:         testStateRepo,
+			chans:            testChans,
+		}
+
+		testServer := getTestServer(testServerArgs)
 
 		body := types.ExecuteStrategyRequest{
 			Portfolio: testPortfolio.Name,
@@ -212,23 +241,32 @@ func TestExecuteStrategy(t *testing.T) {
 			}
 		*/
 		const unexpectedUpdate = "State was not updated as expected, "
-		if initialState.LastUpdated == formattedTimeStart {
+
+		// wait for async operations
+		<-strategyExecutedChannel
+
+		updatedState, err := testStateRepo.GetState()
+		if err != nil {
+			t.Fatalf("Failed to retrieve state from repository")
+		}
+
+		if updatedState.LastUpdated == formattedTimeStart {
 			t.Errorf(unexpectedUpdate + "LastUpdated equals start time")
 		}
 
-		if initialState.Portfolios == nil {
+		if updatedState.Portfolios == nil {
 			t.Fatalf(unexpectedUpdate + "Portfolios is nil")
 		}
 
-		if len(initialState.Portfolios) == 0 {
+		if len(updatedState.Portfolios) == 0 {
 			t.Fatalf(unexpectedUpdate + "No portfolios added to state")
 		}
 
-		if len(initialState.Portfolios) > 1 {
-			t.Errorf(unexpectedUpdate+"expected 1 portfolio but found %d", len(initialState.Portfolios))
+		if len(updatedState.Portfolios) > 1 {
+			t.Errorf(unexpectedUpdate+"expected 1 portfolio but found %d", len(updatedState.Portfolios))
 		}
 
-		actualPortfolio := initialState.Portfolios[0]
+		actualPortfolio := updatedState.Portfolios[0]
 		assertStringEquals(testPortfolio.Name, actualPortfolio.Name, t)
 		assertStringEquals(testPortfolio.Uuid, actualPortfolio.Uuid, t)
 		assertStringEquals(testPortfolio.Type, actualPortfolio.Type, t)

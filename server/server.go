@@ -15,8 +15,15 @@ import (
 )
 
 type InvestmentManagerHTTPServer struct {
-	client infrastructure.InvestmentManagerExternalHttpClient
-	state  *types.State
+	client          infrastructure.InvestmentManagerExternalHttpClient
+	stateRepository *StateRepository
+	channels        []chan bool
+}
+
+type InvestmentManagerHTTPServerArgs struct {
+	HttpClient      *infrastructure.InvestmentManagerExternalHttpClient
+	StateRepository *StateRepository
+	Channels        []chan bool
 }
 
 func (s *InvestmentManagerHTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -41,19 +48,24 @@ func (s *InvestmentManagerHTTPServer) ServeHTTP(w http.ResponseWriter, r *http.R
 func GetDefaultInvestmentManagerHTTPServer() *InvestmentManagerHTTPServer {
 	httpClient := infrastructure.GetInvestmentManagerExternalHttpClient()
 
+	initialState := &types.State{
+		LastUpdated: time.Now().Format(time.RFC3339),
+		Portfolios:  nil,
+	}
+
+	stateRepo := StateRepositoryFactory(*initialState)
+
 	return &InvestmentManagerHTTPServer{
-		client: *httpClient,
-		state: &types.State{
-			LastUpdated: time.Now().Format(time.RFC3339),
-			Portfolios:  nil,
-		},
+		client:          *httpClient,
+		stateRepository: stateRepo,
 	}
 }
 
-func InvestmentManagerHttpServerFactory(httpClient *infrastructure.InvestmentManagerExternalHttpClient, initialState *types.State) *InvestmentManagerHTTPServer {
+func InvestmentManagerHttpServerFactory(args InvestmentManagerHTTPServerArgs) *InvestmentManagerHTTPServer {
 	return &InvestmentManagerHTTPServer{
-		client: *httpClient,
-		state:  initialState,
+		client:          *args.HttpClient,
+		stateRepository: args.StateRepository,
+		channels:        args.Channels,
 	}
 }
 
@@ -110,10 +122,6 @@ func (s *InvestmentManagerHTTPServer) handleExecuteStrategy(w http.ResponseWrite
 		return
 	}
 
-	now := time.Now()
-
-	// TODO: Use correct last updated
-	s.state.LastUpdated = now.Add(time.Second * 5).Format(time.RFC3339)
 	body := r.Body
 
 	defer body.Close()
@@ -161,36 +169,14 @@ func (s *InvestmentManagerHTTPServer) handleExecuteStrategy(w http.ResponseWrite
 		return
 	}
 
-	s.state.Portfolios = []types.Portfolio{
-		{
-			Name:    selectedPortfolio.Name,
-			Uuid:    selectedPortfolio.Uuid,
-			Type:    selectedPortfolio.Type,
-			Deleted: selectedPortfolio.Deleted,
-			CurrentStrategy: &types.Strategy{
-				Name:     requestBody.Strategy,
-				Currency: requestBody.Currency,
-				OpenOffers: []types.Offer{
-					{
-						ClientOrderId: "test",    // TODO: Generate client order id
-						ProductId:     "GBP-ETH", // TODO: Confirm product id + get from request
-						Side:          types.BUY,
-						Config: types.OrderConfiguration{
-							Type:       types.LimitLimitGTD,
-							BaseSize:   "10",                                          // TODO: Use correct base size
-							LimitPrice: "10",                                          // TODO: Use correct limit price
-							PostOnly:   true,                                          // TODO: set post only conditionally
-							EndTime:    now.Add(time.Minute * 5).Format(time.RFC3339), // TODO: set conditionally
-						},
-						SelfTradePreventionId: "test",                 // TODO: use correct value
-						RetailPortfolioId:     selectedPortfolio.Uuid, // TODO confirm correct
-					},
-				},
-				ClosedOffers: nil,
-			},
-			PreviousStrategies: nil,
-		},
+	var finished chan bool
+	if len(s.channels) == 1 {
+		finished = s.channels[0]
+	} else {
+		finished = make(chan bool)
 	}
+
+	go executeStrategy(*selectedPortfolio, s.stateRepository, requestBody, finished)
 
 	util.WriteResponse(w, []byte("OK"), nil)
 }
@@ -209,4 +195,54 @@ func getRouteAndArgsFromPath(path string) (string, []string) {
 	}
 
 	return route, args
+}
+
+// Not sure if state repo should be ref or copy - probably ref until state is persisted somehow
+func executeStrategy(portfolio types.Portfolio, stateRepository *StateRepository, executeStrategyRequest types.ExecuteStrategyRequest, finished chan bool) {
+	fmt.Println("BEGIN executeStrategy()")
+	newState, err := stateRepository.GetState()
+
+	if err != nil {
+		fmt.Printf("Failed to get state from repository\n%v\nReturning\n", err)
+		return
+	}
+
+	fiveMinutesFromNow := time.Now().Add(time.Minute * 5).Format(time.RFC3339)
+
+	newState.Portfolios = []types.Portfolio{
+		{
+			Name:    portfolio.Name,
+			Uuid:    portfolio.Uuid,
+			Type:    portfolio.Type,
+			Deleted: portfolio.Deleted,
+			CurrentStrategy: &types.Strategy{
+				Name:     executeStrategyRequest.Strategy,
+				Currency: executeStrategyRequest.Currency,
+				OpenOffers: []types.Offer{
+					{
+						ClientOrderId: "test",    // TODO: Generate client order id
+						ProductId:     "GBP-ETH", // TODO: Confirm product id + get from request
+						Side:          types.BUY,
+						Config: types.OrderConfiguration{
+							Type:       types.LimitLimitGTD,
+							BaseSize:   "10",               // TODO: Use correct base size
+							LimitPrice: "10",               // TODO: Use correct limit price
+							PostOnly:   true,               // TODO: set post only conditionally
+							EndTime:    fiveMinutesFromNow, // TODO: set conditionally
+						},
+						SelfTradePreventionId: "test",         // TODO: use correct value
+						RetailPortfolioId:     portfolio.Uuid, // TODO confirm correct
+					},
+				},
+				ClosedOffers: nil,
+			},
+			PreviousStrategies: nil,
+		},
+	}
+
+	newState.LastUpdated = time.Now().Add(time.Second).Format(time.RFC3339)
+
+	stateRepository.Save(newState)
+	fmt.Printf("END executeStrategy()\n")
+	finished <- true
 }
