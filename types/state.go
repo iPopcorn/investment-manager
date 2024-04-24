@@ -1,6 +1,6 @@
 package types
 
 type State struct {
-	LastUpdated string
-	Portfolios  []Portfolio
+	LastUpdated string      `json:"last_updated"`
+	Portfolios  []Portfolio `json:"portfolios"`
 }

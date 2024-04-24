@@ -10,19 +10,20 @@ import (
 	"time"
 
 	"github.com/iPopcorn/investment-manager/infrastructure"
+	"github.com/iPopcorn/investment-manager/server/state"
 	"github.com/iPopcorn/investment-manager/server/util"
 	"github.com/iPopcorn/investment-manager/types"
 )
 
 type InvestmentManagerHTTPServer struct {
 	client          infrastructure.InvestmentManagerExternalHttpClient
-	stateRepository *StateRepository
+	stateRepository *state.StateRepository
 	channels        []chan bool
 }
 
 type InvestmentManagerHTTPServerArgs struct {
 	HttpClient      *infrastructure.InvestmentManagerExternalHttpClient
-	StateRepository *StateRepository
+	StateRepository *state.StateRepository
 	Channels        []chan bool
 }
 
@@ -47,13 +48,7 @@ func (s *InvestmentManagerHTTPServer) ServeHTTP(w http.ResponseWriter, r *http.R
 
 func GetDefaultInvestmentManagerHTTPServer() *InvestmentManagerHTTPServer {
 	httpClient := infrastructure.GetInvestmentManagerExternalHttpClient()
-
-	initialState := &types.State{
-		LastUpdated: time.Now().Format(time.RFC3339),
-		Portfolios:  nil,
-	}
-
-	stateRepo := StateRepositoryFactory(*initialState)
+	stateRepo := state.StateRepositoryFactory("")
 
 	return &InvestmentManagerHTTPServer{
 		client:          *httpClient,
@@ -198,7 +193,7 @@ func getRouteAndArgsFromPath(path string) (string, []string) {
 }
 
 // Not sure if state repo should be ref or copy - probably ref until state is persisted somehow
-func executeStrategy(portfolio types.Portfolio, stateRepository *StateRepository, executeStrategyRequest types.ExecuteStrategyRequest, finished chan bool) {
+func executeStrategy(portfolio types.Portfolio, stateRepository *state.StateRepository, executeStrategyRequest types.ExecuteStrategyRequest, finished chan bool) {
 	fmt.Println("BEGIN executeStrategy()")
 	newState, err := stateRepository.GetState()
 
@@ -242,7 +237,7 @@ func executeStrategy(portfolio types.Portfolio, stateRepository *StateRepository
 
 	newState.LastUpdated = time.Now().Add(time.Second).Format(time.RFC3339)
 
-	stateRepository.Save(newState)
+	stateRepository.Save(*newState)
 	fmt.Printf("END executeStrategy()\n")
 	finished <- true
 }

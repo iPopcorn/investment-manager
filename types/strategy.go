@@ -7,27 +7,27 @@ type ExecuteStrategyRequest struct {
 }
 
 type Strategy struct {
-	Name         string
-	Currency     string
-	OpenOffers   []Offer
-	ClosedOffers []Offer
+	Name         string  `json:"name"`
+	Currency     string  `json:"currency"`
+	OpenOffers   []Offer `json:"open_offers"`
+	ClosedOffers []Offer `json:"closed_offers"`
 }
 
 type Offer struct {
-	ClientOrderId         string
-	ProductId             string
-	Side                  Side
-	Config                OrderConfiguration
-	SelfTradePreventionId string
-	RetailPortfolioId     string
+	ClientOrderId         string             `json:"client_order_id"`
+	ProductId             string             `json:"product_id"`
+	Side                  Side               `json:"side"`
+	Config                OrderConfiguration `json:"config"`
+	SelfTradePreventionId string             `json:"self_trade_prevention_id"`
+	RetailPortfolioId     string             `json:"retail_portfolio_id"`
 }
 
 type OrderConfiguration struct {
-	Type       OrderType
-	BaseSize   string
-	LimitPrice string
-	PostOnly   bool
-	EndTime    string // RFC3339 Timestamp
+	Type       OrderType `json:"type"`
+	BaseSize   string    `json:"base_size"`
+	LimitPrice string    `json:"limit_price"`
+	PostOnly   bool      `json:"post_only"`
+	EndTime    string    `json:"end_time"` // RFC3339 Timestamp
 }
 
 type OrderType string

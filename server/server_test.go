@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/iPopcorn/investment-manager/infrastructure"
+	"github.com/iPopcorn/investment-manager/server/state"
 	"github.com/iPopcorn/investment-manager/types"
 )
 
@@ -23,7 +24,7 @@ type testReader struct {
 
 type testServerArgs struct {
 	expectedResponse []byte
-	mockRepo         *StateRepository
+	mockRepo         *state.StateRepository
 	chans            []chan bool
 }
 
@@ -163,12 +164,8 @@ func TestExecuteStrategy(t *testing.T) {
 
 		timeStart := time.Now()
 		formattedTimeStart := timeStart.Format(time.RFC3339)
-		initialState := &types.State{
-			LastUpdated: formattedTimeStart,
-			Portfolios:  nil,
-		}
 
-		testStateRepo := StateRepositoryFactory(*initialState)
+		testStateRepo := state.StateRepositoryFactory("test-state.json")
 
 		strategyExecutedChannel := make(chan bool)
 		testChans := []chan bool{strategyExecutedChannel}
