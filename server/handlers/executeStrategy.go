@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/fossoreslp/go-uuid-v4"
 	"github.com/iPopcorn/investment-manager/infrastructure"
 	"github.com/iPopcorn/investment-manager/server/state"
 	"github.com/iPopcorn/investment-manager/server/util"
@@ -98,10 +99,20 @@ func executeStrategy(portfolio types.Portfolio, stateRepository *state.StateRepo
 
 	if err != nil {
 		fmt.Printf("Failed to get state from repository\n%v\nReturning\n", err)
+
+		finished <- true
 		return
 	}
 
 	fiveMinutesFromNow := time.Now().Add(time.Minute * 5).Format(time.RFC3339)
+	clientOrderId, err := uuid.NewString()
+
+	if err != nil {
+		fmt.Printf("Failed to generate uuid for clientOrderId\n%v\nReturning\n", err)
+
+		finished <- true
+		return
+	}
 
 	newState.Portfolios = []types.Portfolio{
 		{
@@ -114,7 +125,7 @@ func executeStrategy(portfolio types.Portfolio, stateRepository *state.StateRepo
 				Currency: executeStrategyRequest.Currency,
 				OpenOffers: []types.Offer{
 					{
-						ClientOrderId: "test",    // TODO: Generate client order id
+						ClientOrderId: clientOrderId,
 						ProductId:     "GBP-ETH", // TODO: Confirm product id + get from request
 						Side:          types.BUY,
 						Config: types.OrderConfiguration{
