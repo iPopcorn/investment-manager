@@ -3,11 +3,11 @@ package server
 import (
 	"log"
 	"net/http"
-	"strings"
 
 	"github.com/iPopcorn/investment-manager/infrastructure"
 	"github.com/iPopcorn/investment-manager/server/handlers"
 	"github.com/iPopcorn/investment-manager/server/state"
+	"github.com/iPopcorn/investment-manager/server/util"
 	"github.com/iPopcorn/investment-manager/types"
 )
 
@@ -44,7 +44,7 @@ func InvestmentManagerHttpServerFactory(args InvestmentManagerHTTPServerArgs) *I
 func (s *InvestmentManagerHTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	log.Printf("Received request: %v\n", r)
 
-	route, args := getRouteAndArgsFromPath(r.URL.Path)
+	route, args := util.GetRouteAndArgsFromPath(r.URL.Path)
 
 	switch route {
 
@@ -76,20 +76,4 @@ func (s *InvestmentManagerHTTPServer) ServeHTTP(w http.ResponseWriter, r *http.R
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
-}
-
-func getRouteAndArgsFromPath(path string) (string, []string) {
-	rawPath := strings.TrimPrefix(path, "/")
-	log.Printf("rawPath: %v", rawPath)
-	pathTokens := strings.Split(rawPath, "/")
-	log.Printf("pathTokens: %v", pathTokens)
-	route := pathTokens[0]
-	log.Printf("Route: %q\n", route)
-	args := []string{}
-
-	for i := 1; i < len(pathTokens); i++ {
-		args = append(args, pathTokens[i])
-	}
-
-	return route, args
 }

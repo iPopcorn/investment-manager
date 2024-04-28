@@ -80,6 +80,15 @@ func HandleExecuteStrategy(args HandleExecuteStrategyArgs) {
 		return
 	}
 
+	selectedPortfolioDetails, err := util.PortfolioDetails(args.Client, selectedPortfolio.Uuid)
+
+	if err != nil {
+		fmt.Printf("err: %+v\n", err)
+		util.WriteResponse(args.Writer, nil, fmt.Errorf(handlerName+"Failed to get details for selected portfolio\n"))
+
+		return
+	}
+
 	// TODO: This channel is used for tests, there's probably a better way to handle this
 	var finished chan bool
 	if len(args.Channels) == 1 {
@@ -88,31 +97,60 @@ func HandleExecuteStrategy(args HandleExecuteStrategyArgs) {
 		finished = make(chan bool)
 	}
 
-	go executeStrategy(*selectedPortfolio, args.StateRepository, requestBody, finished)
+	productID, err := util.GetProductID(args.Client, selectedPortfolioDetails, requestBody.Currency)
+
+	if err != nil {
+		fmt.Printf("Error: %+v", err)
+		util.WriteResponse(args.Writer, nil, fmt.Errorf(handlerName+"Failed to get ProductID\n"))
+
+		return
+	}
+
+	executeStrategyArgs := executeStrategyArgs{
+		PortfolioDetails: selectedPortfolioDetails,
+		StateRepository:  args.StateRepository,
+		ProductID:        productID,
+		StrategyName:     requestBody.Strategy,
+		StrategyCurrency: requestBody.Currency,
+		Finished:         finished,
+	}
+
+	go executeStrategy(executeStrategyArgs)
 
 	util.WriteResponse(args.Writer, []byte("OK"), nil)
 }
 
-func executeStrategy(portfolio types.Portfolio, stateRepository *state.StateRepository, executeStrategyRequest types.ExecuteStrategyRequest, finished chan bool) {
+type executeStrategyArgs struct {
+	PortfolioDetails *types.PortfolioDetailsResponse
+	StateRepository  *state.StateRepository
+	ProductID        string
+	StrategyName     string
+	StrategyCurrency string
+	Finished         chan bool
+}
+
+func executeStrategy(args executeStrategyArgs) {
 	fmt.Println("BEGIN executeStrategy()")
-	newState, err := stateRepository.GetState()
+	newState, err := args.StateRepository.GetState()
 
 	if err != nil {
 		fmt.Printf("Failed to get state from repository\n%v\nReturning\n", err)
 
-		finished <- true
+		args.Finished <- true
 		return
 	}
 
 	fiveMinutesFromNow := time.Now().Add(time.Minute * 5).Format(time.RFC3339)
-	clientOrderId, err := uuid.NewString()
+	clientOrderID, err := uuid.NewString()
 
 	if err != nil {
 		fmt.Printf("Failed to generate uuid for clientOrderId\n%v\nReturning\n", err)
 
-		finished <- true
+		args.Finished <- true
 		return
 	}
+
+	portfolio := args.PortfolioDetails.Breakdown.Portfolio
 
 	newState.Portfolios = []types.Portfolio{
 		{
@@ -121,12 +159,12 @@ func executeStrategy(portfolio types.Portfolio, stateRepository *state.StateRepo
 			Type:    portfolio.Type,
 			Deleted: portfolio.Deleted,
 			CurrentStrategy: &types.Strategy{
-				Name:     executeStrategyRequest.Strategy,
-				Currency: executeStrategyRequest.Currency,
+				Name:     args.StrategyName,
+				Currency: args.StrategyCurrency,
 				OpenOffers: []types.Offer{
 					{
-						ClientOrderId: clientOrderId,
-						ProductId:     "GBP-ETH", // TODO: Confirm product id + get from request
+						ClientOrderId: clientOrderID,
+						ProductId:     args.ProductID,
 						Side:          types.BUY,
 						Config: types.OrderConfiguration{
 							Type:       types.LimitLimitGTD,
@@ -147,7 +185,7 @@ func executeStrategy(portfolio types.Portfolio, stateRepository *state.StateRepo
 
 	newState.LastUpdated = time.Now().Add(time.Second).Format(time.RFC3339)
 
-	stateRepository.Save(*newState)
+	args.StateRepository.Save(*newState)
 	fmt.Printf("END executeStrategy()\n")
-	finished <- true
+	args.Finished <- true
 }

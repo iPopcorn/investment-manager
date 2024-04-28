@@ -11,11 +11,12 @@ import (
 
 	"github.com/iPopcorn/investment-manager/infrastructure"
 	"github.com/iPopcorn/investment-manager/server/state"
+	"github.com/iPopcorn/investment-manager/server/util"
 	"github.com/iPopcorn/investment-manager/types"
 )
 
 type testHttpClient struct {
-	getResponse []byte
+	getResponseMap map[string][]byte
 }
 
 type testReader struct {
@@ -23,21 +24,28 @@ type testReader struct {
 }
 
 type testServerArgs struct {
-	expectedResponse []byte
-	mockRepo         *state.StateRepository
-	chans            []chan bool
+	expectedResponseMap map[string][]byte
+	mockRepo            *state.StateRepository
+	chans               []chan bool
 }
 
 func (testClient testHttpClient) Do(req *http.Request) (*http.Response, error) {
+	_, args := util.GetRouteAndArgsFromPath(req.URL.Path)
+
+	index := len(args) - 1
+	key := args[index]
+	responseData := testClient.getResponseMap[key]
+
 	resp := http.Response{
-		Body: io.NopCloser(bytes.NewReader(testClient.getResponse)),
+		Body: io.NopCloser(bytes.NewReader(responseData)),
 	}
+
 	return &resp, nil
 }
 
 func getTestServer(args *testServerArgs) *InvestmentManagerHTTPServer {
 	testHttpClient := testHttpClient{
-		getResponse: args.expectedResponse,
+		getResponseMap: args.expectedResponseMap,
 	}
 	testInvestmentManagerHTTPClient := infrastructure.InvestmentManagerExternalHttpClient{
 		HttpClient: testHttpClient,
@@ -78,8 +86,11 @@ func TestGETPortfolios(t *testing.T) {
 		request, _ := http.NewRequest(http.MethodGet, "/portfolios", nil)
 		response := httptest.NewRecorder()
 
+		responseMap := make(map[string][]byte)
+		responseMap["portfolios"] = serializedExpectedResponse
+
 		testServerArgs := &testServerArgs{
-			expectedResponse: serializedExpectedResponse,
+			expectedResponseMap: responseMap,
 		}
 
 		server := getTestServer(testServerArgs)
@@ -156,10 +167,62 @@ func TestExecuteStrategy(t *testing.T) {
 			Portfolios: []types.Portfolio{*testPortfolio},
 		}
 
-		serializedResponse, err := json.Marshal(testPortfolioResponse)
+		testZeroBalance := types.Balance{
+			Value:    "0",
+			Currency: "GBP",
+		}
+
+		testPortfolioDetailsResponse := &types.PortfolioDetailsResponse{
+			Breakdown: types.Breakdown{
+				Portfolio: *testPortfolio,
+				PortfolioBalances: types.PortfolioBalances{
+					TotalBalance:               testZeroBalance,
+					TotalFuturesBalance:        testZeroBalance,
+					TotalCashEquivalentBalance: testZeroBalance,
+					TotalCryptoBalance:         testZeroBalance,
+					FuturesUnrealizedPnl:       testZeroBalance,
+					PerpUnrealizedPnl:          testZeroBalance,
+				},
+				SpotPositions: []types.SpotPositions{
+					{
+						Asset:                "GBP",
+						AccountUuid:          "test-account-uuid",
+						TotalBalanceFiat:     0,
+						TotalBalanceCrypto:   0,
+						AvailableToTradeFiat: 0,
+						Allocation:           0,
+						CostBasis:            testZeroBalance,
+						AssetImgUrl:          "",
+						IsCash:               true,
+					},
+				},
+			},
+		}
+
+		testProductResponse := &types.ProductResponse{
+			Products: []types.Product{
+				{
+					ProductID: "ETH-GBP",
+					Price:     "10",
+				},
+			},
+		}
+
+		serializedPortfolioResponse, err := json.Marshal(testPortfolioResponse)
+		if err != nil {
+			t.Fatalf("Failed to create mock response for test server\n%v", err)
+		}
+
+		serializedPortfolioDetailsResponse, err := json.Marshal(testPortfolioDetailsResponse)
 
 		if err != nil {
 			t.Fatalf("Failed to create mock response for test server\n%v", err)
+		}
+
+		serializedTestProductResponse, err := json.Marshal(testProductResponse)
+
+		if err != nil {
+			t.Fatalf("Failed to create mock test product response for test server\n%v", err)
 		}
 
 		timeStart := time.Now()
@@ -170,10 +233,15 @@ func TestExecuteStrategy(t *testing.T) {
 		strategyExecutedChannel := make(chan bool)
 		testChans := []chan bool{strategyExecutedChannel}
 
+		responseMap := make(map[string][]byte)
+		responseMap["portfolios"] = serializedPortfolioResponse
+		responseMap["test-portfolio-id"] = serializedPortfolioDetailsResponse
+		responseMap["products"] = serializedTestProductResponse
+
 		testServerArgs := &testServerArgs{
-			expectedResponse: serializedResponse,
-			mockRepo:         testStateRepo,
-			chans:            testChans,
+			expectedResponseMap: responseMap,
+			mockRepo:            testStateRepo,
+			chans:               testChans,
 		}
 
 		testServer := getTestServer(testServerArgs)
@@ -238,6 +306,9 @@ func TestExecuteStrategy(t *testing.T) {
 			}
 		*/
 		const unexpectedUpdate = "State was not updated as expected, "
+		if response.Code == http.StatusInternalServerError {
+			t.Fatalf("Server did not return 200\n")
+		}
 
 		// wait for async operations
 		<-strategyExecutedChannel
@@ -307,7 +378,7 @@ func TestExecuteStrategy(t *testing.T) {
 			t.Errorf(unexpectedUpdate + "client order id is empty")
 		}
 
-		assertStringEquals("GBP-ETH", actualOpenOffer.ProductId, t)
+		assertStringEquals("ETH-GBP", actualOpenOffer.ProductId, t)
 		assertStringEquals(string(types.BUY), string(actualOpenOffer.Side), t)
 
 		offerConfig := actualOpenOffer.Config
