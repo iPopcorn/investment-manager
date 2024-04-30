@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/fossoreslp/go-uuid-v4"
@@ -67,10 +68,10 @@ func HandleExecuteStrategy(args HandleExecuteStrategyArgs) {
 	}
 
 	var selectedPortfolio *types.Portfolio
-
 	for _, p := range userPortfolios.Portfolios {
 		if p.Name == requestBody.Portfolio {
 			selectedPortfolio = &p
+			break
 		}
 	}
 
@@ -107,6 +108,7 @@ func HandleExecuteStrategy(args HandleExecuteStrategyArgs) {
 	}
 
 	executeStrategyArgs := executeStrategyArgs{
+		Client:           args.Client,
 		PortfolioDetails: selectedPortfolioDetails,
 		StateRepository:  args.StateRepository,
 		ProductID:        productID,
@@ -121,6 +123,7 @@ func HandleExecuteStrategy(args HandleExecuteStrategyArgs) {
 }
 
 type executeStrategyArgs struct {
+	Client           *infrastructure.InvestmentManagerExternalHttpClient
 	PortfolioDetails *types.PortfolioDetailsResponse
 	StateRepository  *state.StateRepository
 	ProductID        string
@@ -131,13 +134,26 @@ type executeStrategyArgs struct {
 
 func executeStrategy(args executeStrategyArgs) {
 	fmt.Println("BEGIN executeStrategy()")
+	var newState *types.State
 	newState, err := args.StateRepository.GetState()
 
 	if err != nil {
-		fmt.Printf("Failed to get state from repository\n%v\nReturning\n", err)
+		if strings.Contains(fmt.Sprintf("%s", err), "no such file or directory") {
+			fmt.Printf("No state found, initializing\n")
 
-		args.Finished <- true
-		return
+			newState = args.StateRepository.InitState()
+			err = args.StateRepository.Save(*newState)
+
+			if err != nil {
+				fmt.Printf("failed to init state, returning\n%v\n", err)
+				args.Finished <- true
+				return
+			}
+		} else {
+			fmt.Printf("Failed to get state from repository\n%v\nReturning\n", err)
+			args.Finished <- true
+			return
+		}
 	}
 
 	fiveMinutesFromNow := time.Now().Add(time.Minute * 5).Format(time.RFC3339)
@@ -151,6 +167,17 @@ func executeStrategy(args executeStrategyArgs) {
 	}
 
 	portfolio := args.PortfolioDetails.Breakdown.Portfolio
+
+	bestBidAsk, err := util.GetBestBidAsk(args.Client, args.ProductID)
+
+	if err != nil {
+		fmt.Printf("Failed to get best bid/ask \n%v\n", err)
+
+		args.Finished <- true
+		return
+	}
+
+	fmt.Printf("Best bid/ask for %s\n%+v\n", args.ProductID, bestBidAsk)
 
 	newState.Portfolios = []types.Portfolio{
 		{

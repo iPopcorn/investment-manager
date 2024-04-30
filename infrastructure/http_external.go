@@ -113,9 +113,13 @@ func getJWT(url, httpMethod string) (string, error) {
 		}
 	}
 
+	// remove query params
+	path = strings.Split(path, "?")[0]
+	uri := fmt.Sprintf("%s %s%s", httpMethod, host, path)
+
 	jwtOptions := auth.BuildJWTOptions{
 		Service:    "retail_rest_api_proxy",
-		Uri:        fmt.Sprintf("%s %s%s", httpMethod, host, path),
+		Uri:        uri,
 		PrivateKey: apiKey.PrivateKey,
 		Name:       apiKey.Name,
 	}

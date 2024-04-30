@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/iPopcorn/investment-manager/types"
 	"github.com/iPopcorn/investment-manager/util"
@@ -14,7 +15,7 @@ type StateRepository struct {
 }
 
 func StateRepositoryFactory(filename string) *StateRepository {
-	defaultName := "/server/state/state.json"
+	defaultName := "state.json"
 
 	if filename != "" {
 		return &StateRepository{
@@ -67,4 +68,13 @@ func (r *StateRepository) Save(newState types.State) error {
 	}
 
 	return os.WriteFile(filepath, data, 0666)
+}
+
+func (r *StateRepository) InitState() *types.State {
+	initialState := &types.State{
+		LastUpdated: time.Now().Format(time.RFC3339),
+		Portfolios:  []types.Portfolio{},
+	}
+
+	return initialState
 }

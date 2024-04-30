@@ -17,3 +17,14 @@ func MapProductResponse(httpResponse []byte) (*types.ProductResponse, error) {
 
 	return &resp, nil
 }
+
+func MapBestBidAskResponse(httpResponse []byte) (*types.BestBidAskResponse, error) {
+	var resp types.BestBidAskResponse
+	err := json.Unmarshal(httpResponse, &resp)
+
+	if err != nil {
+		return nil, fmt.Errorf("Failed to map http response to object\n%v", err)
+	}
+
+	return &resp, nil
+}

@@ -24,8 +24,8 @@ type Offer struct {
 
 type OrderConfiguration struct {
 	Type       OrderType `json:"type"`
-	BaseSize   string    `json:"base_size"`
-	LimitPrice string    `json:"limit_price"`
+	BaseSize   string    `json:"base_size"`   // Amount of base currency to spend on order
+	LimitPrice string    `json:"limit_price"` // Ceiling price for which the order should get filled.
 	PostOnly   bool      `json:"post_only"`
 	EndTime    string    `json:"end_time"` // RFC3339 Timestamp
 }
