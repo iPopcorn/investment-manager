@@ -208,6 +208,27 @@ func TestExecuteStrategy(t *testing.T) {
 			},
 		}
 
+		testBestBidAskResponse := &types.BestBidAskResponse{
+			PriceBooks: []types.PriceBook{
+				{
+					ProductID: "ETH-GBP",
+					Bids: []types.Bid{
+						{
+							Price: "2349.55",
+							Size:  "0.0675",
+						},
+					},
+					Asks: []types.Bid{
+						{
+							Price: "2350.99",
+							Size:  "0.05",
+						},
+					},
+					Time: "2024-05-01T20:07:23.044653Z",
+				},
+			},
+		}
+
 		serializedPortfolioResponse, err := json.Marshal(testPortfolioResponse)
 		if err != nil {
 			t.Fatalf("Failed to create mock response for test server\n%v", err)
@@ -225,6 +246,8 @@ func TestExecuteStrategy(t *testing.T) {
 			t.Fatalf("Failed to create mock test product response for test server\n%v", err)
 		}
 
+		serializedBestBidAskResponse, err := json.Marshal(testBestBidAskResponse)
+
 		timeStart := time.Now()
 		formattedTimeStart := timeStart.Format(time.RFC3339)
 
@@ -237,6 +260,7 @@ func TestExecuteStrategy(t *testing.T) {
 		responseMap["portfolios"] = serializedPortfolioResponse
 		responseMap["test-portfolio-id"] = serializedPortfolioDetailsResponse
 		responseMap["products"] = serializedTestProductResponse
+		responseMap["best_bid_ask"] = serializedBestBidAskResponse
 
 		testServerArgs := &testServerArgs{
 			expectedResponseMap: responseMap,

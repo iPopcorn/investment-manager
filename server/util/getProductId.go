@@ -3,6 +3,7 @@ package util
 import (
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/iPopcorn/investment-manager/infrastructure"
 	"github.com/iPopcorn/investment-manager/types"
@@ -16,7 +17,7 @@ func GetProductID(
 ) (string, error) {
 	quoteCurrencyID := portfolioDetails.Breakdown.PortfolioBalances.TotalCashEquivalentBalance.Currency
 
-	productID := baseCurrency + "-" + quoteCurrencyID
+	productID := strings.ToUpper(baseCurrency) + "-" + quoteCurrencyID
 
 	url := fmt.Sprintf("https://api.coinbase.com/api/v3/brokerage/products?product_type=SPOT&product_ids=%s", productID)
 	resp, err := client.Get(url)
