@@ -20,7 +20,7 @@ func GetDefaultInvestmentManagerInternalHttpClient() *InvestmentManagerInternalH
 	}
 }
 
-func GetInjectedInvestmentManagerInternalHttpClient(client HttpClient, baseURL string) *InvestmentManagerInternalHttpClient {
+func InvestmentManagerInternalHttpClientFactory(client HttpClient, baseURL string) *InvestmentManagerInternalHttpClient {
 	return &InvestmentManagerInternalHttpClient{
 		client:  client,
 		baseURL: baseURL,

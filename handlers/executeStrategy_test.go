@@ -37,7 +37,7 @@ func TestExecuteStrategy(t *testing.T) {
 	t.Run("Fails to execute a strategy that is already running", func(t *testing.T) {
 
 		testHttpClient := &TestExecuteStrategyHttpClient{counter: 0}
-		testInternalClient := infrastructure.GetInjectedInvestmentManagerInternalHttpClient(testHttpClient, "")
+		testInternalClient := infrastructure.InvestmentManagerInternalHttpClientFactory(testHttpClient, "")
 		testHandler := handlers.ExecuteStrategyHandlerFactory(testInternalClient)
 		args := []string{"test", "hodl", "eth"}
 

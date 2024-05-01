@@ -33,7 +33,7 @@ func TestPortfolioDetails(t *testing.T) {
 
 func getTestPortfolioDetailsHandler() handlers.CobraCommandHandler {
 	testHttpClient := &testutils.TestHttpClient{GetResponse: ""}
-	testInternalClient := infrastructure.GetInjectedInvestmentManagerInternalHttpClient(testHttpClient, "test")
+	testInternalClient := infrastructure.InvestmentManagerInternalHttpClientFactory(testHttpClient, "test")
 
 	return handlers.PortfolioDetailsFactory(testInternalClient)
 }

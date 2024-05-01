@@ -10,6 +10,7 @@
 *.so
 *.dylib
 bin/*
+server/state/*state.json
 
 # Test binary, built with `go test -c`
 *.test

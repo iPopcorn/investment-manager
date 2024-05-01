@@ -1,5 +1,11 @@
 package types
 
+type TransferRequest struct {
+	Sender   string
+	Receiver string
+	Amount   string
+}
+
 type PortfolioResponse struct {
 	Portfolios []Portfolio `json:"portfolios"`
 }
