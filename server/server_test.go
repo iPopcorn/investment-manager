@@ -431,6 +431,173 @@ func TestExecuteStrategy(t *testing.T) {
 	})
 }
 
+func TestTransferFunds(t *testing.T) {
+	setup := func(senderAvailableToTradeFiat float64, t *testing.T) (senderID, receiverID string, testServer *InvestmentManagerHTTPServer) {
+		t.Helper()
+		senderPortfolioID := "test-sender-portfolio-id"
+		receiverPortfolioID := "test-receiver-portfolio-id"
+		testSenderPortfolio := &types.Portfolio{
+			Name:               "test-sender",
+			Uuid:               senderPortfolioID,
+			Type:               "test",
+			Deleted:            false,
+			CurrentStrategy:    nil,
+			PreviousStrategies: nil,
+		}
+		testReceiverPortfolio := &types.Portfolio{
+			Name:               "test-receiver",
+			Uuid:               receiverPortfolioID,
+			Type:               "test",
+			Deleted:            false,
+			CurrentStrategy:    nil,
+			PreviousStrategies: nil,
+		}
+		testZeroBalance := types.Balance{
+			Value:    "0",
+			Currency: "GBP",
+		}
+
+		testSenderPortfolioDetailsResponse := &types.PortfolioDetailsResponse{
+			Breakdown: types.Breakdown{
+				Portfolio: *testSenderPortfolio,
+				PortfolioBalances: types.PortfolioBalances{
+					TotalBalance:               testZeroBalance,
+					TotalFuturesBalance:        testZeroBalance,
+					TotalCashEquivalentBalance: testZeroBalance,
+					TotalCryptoBalance:         testZeroBalance,
+					FuturesUnrealizedPnl:       testZeroBalance,
+					PerpUnrealizedPnl:          testZeroBalance,
+				},
+				SpotPositions: []types.SpotPositions{
+					{
+						Asset:                "GBP",
+						AccountUuid:          "test-account-uuid",
+						TotalBalanceFiat:     0,
+						TotalBalanceCrypto:   0,
+						AvailableToTradeFiat: senderAvailableToTradeFiat,
+						Allocation:           0,
+						CostBasis:            testZeroBalance,
+						AssetImgUrl:          "",
+						IsCash:               true,
+					},
+				},
+			},
+		}
+
+		testReceiverPortfolioDetailsResponse := &types.PortfolioDetailsResponse{
+			Breakdown: types.Breakdown{
+				Portfolio: *testReceiverPortfolio,
+				PortfolioBalances: types.PortfolioBalances{
+					TotalBalance:               testZeroBalance,
+					TotalFuturesBalance:        testZeroBalance,
+					TotalCashEquivalentBalance: testZeroBalance,
+					TotalCryptoBalance:         testZeroBalance,
+					FuturesUnrealizedPnl:       testZeroBalance,
+					PerpUnrealizedPnl:          testZeroBalance,
+				},
+				SpotPositions: []types.SpotPositions{
+					{
+						Asset:                "GBP",
+						AccountUuid:          "test-account-uuid",
+						TotalBalanceFiat:     0,
+						TotalBalanceCrypto:   0,
+						AvailableToTradeFiat: 0,
+						Allocation:           0,
+						CostBasis:            testZeroBalance,
+						AssetImgUrl:          "",
+						IsCash:               true,
+					},
+				},
+			},
+		}
+
+		serializedTestSenderPortfolioDetailsResponse, err := json.Marshal(testSenderPortfolioDetailsResponse)
+		if err != nil {
+			t.Fatalf("Failed to serialize data\nGiven: %+v\n%v\n", serializedTestSenderPortfolioDetailsResponse, err)
+		}
+
+		serializedTestReceiverPortfolioDetailsResponse, err := json.Marshal(testReceiverPortfolioDetailsResponse)
+		if err != nil {
+			t.Fatalf("Failed to serialize data\nGiven: %+v\n%v\n", serializedTestReceiverPortfolioDetailsResponse, err)
+		}
+
+		responseMap := make(map[string][]byte)
+		responseMap[senderPortfolioID] = serializedTestSenderPortfolioDetailsResponse
+		responseMap[receiverPortfolioID] = serializedTestReceiverPortfolioDetailsResponse
+
+		testServerArgs := &testServerArgs{
+			expectedResponseMap: responseMap,
+			mockRepo:            nil,
+			chans:               nil,
+		}
+
+		return senderPortfolioID, receiverPortfolioID, getTestServer(testServerArgs)
+	}
+	t.Run("Fails to transfer if not enough funds", func(t *testing.T) {
+		// Arrange
+		senderID, receiverID, testServer := setup(0, t)
+		body := types.TransferRequest{
+			SenderID:   senderID,
+			ReceiverID: receiverID,
+			Amount:     "10",
+		}
+
+		serializedBody, err := json.Marshal(body)
+
+		if err != nil {
+			t.Fatalf("Failed to create body for request\n%v", err)
+		}
+
+		request, err := http.NewRequest(http.MethodPost, "/"+string(types.TransferFunds), bytes.NewReader(serializedBody))
+
+		if err != nil {
+			t.Fatalf("Failed to create http request\n%v", err)
+		}
+
+		response := httptest.NewRecorder()
+
+		// Act
+		testServer.ServeHTTP(response, request)
+
+		// Assert
+		if response.Code != http.StatusBadRequest {
+			t.Fatalf("Expected %d Received %d", http.StatusBadRequest, response.Code)
+		}
+	})
+
+	t.Run("Transfers funds as expected", func(t *testing.T) {
+		// Arrange
+		senderID, receiverID, testServer := setup(20, t)
+		body := types.TransferRequest{
+			SenderID:   senderID,
+			ReceiverID: receiverID,
+			Amount:     "10",
+		}
+
+		serializedBody, err := json.Marshal(body)
+
+		if err != nil {
+			t.Fatalf("Failed to create body for request\n%v", err)
+		}
+
+		request, err := http.NewRequest(http.MethodPost, "/"+string(types.TransferFunds), bytes.NewReader(serializedBody))
+
+		if err != nil {
+			t.Fatalf("Failed to create http request\n%v", err)
+		}
+
+		response := httptest.NewRecorder()
+
+		// Act
+		testServer.ServeHTTP(response, request)
+
+		// Assert
+		if response.Code != http.StatusOK {
+			t.Fatalf("Expected %d Received %d", http.StatusOK, response.Code)
+		}
+	})
+}
+
 func assertStringEquals(expected, actual string, t *testing.T) {
 	t.Helper()
 	if expected != actual {

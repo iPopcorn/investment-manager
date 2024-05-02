@@ -1,9 +1,9 @@
 package types
 
 type TransferRequest struct {
-	Sender   string
-	Receiver string
-	Amount   string
+	SenderID   string
+	ReceiverID string
+	Amount     string
 }
 
 type PortfolioResponse struct {

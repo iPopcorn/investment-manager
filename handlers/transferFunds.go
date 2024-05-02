@@ -28,10 +28,30 @@ func transferFundsHandler(internalClient *infrastructure.InvestmentManagerIntern
 		return fmt.Errorf("Could not convert arg to float.\nGiven: %s\n%v\n", args[2], err)
 	}
 
+	senderName := args[0]
+	receiverName := args[1]
+
+	portfolios, err := listPortfolios(internalClient)
+	if err != nil {
+		return fmt.Errorf("could not get portfolios\n%v\n", err)
+	}
+
+	senderID, err := getPortfolioIdByName(senderName, portfolios)
+
+	if err != nil {
+		return fmt.Errorf("Could not get sender ID\n%v\n", err)
+	}
+
+	receiverID, err := getPortfolioIdByName(receiverName, portfolios)
+
+	if err != nil {
+		return fmt.Errorf("Could not receiver ID\n%v\n", err)
+	}
+
 	request := types.TransferRequest{
-		Sender:   args[0],
-		Receiver: args[1],
-		Amount:   args[2],
+		SenderID:   senderID,
+		ReceiverID: receiverID,
+		Amount:     args[2],
 	}
 
 	serializedRequest, err := json.Marshal(request)
@@ -48,4 +68,14 @@ func transferFundsHandler(internalClient *infrastructure.InvestmentManagerIntern
 
 	fmt.Printf("Success!\n%s\n", string(resp))
 	return nil
+}
+
+func getPortfolioIdByName(name string, portfolios *types.PortfolioResponse) (string, error) {
+	for _, portfolio := range portfolios.Portfolios {
+		if name == portfolio.Name {
+			return portfolio.Uuid, nil
+		}
+	}
+
+	return "", fmt.Errorf("Could not find portfolio id given %q\nportfolios: %v\n", name, portfolios)
 }

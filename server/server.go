@@ -71,6 +71,17 @@ func (s *InvestmentManagerHTTPServer) ServeHTTP(w http.ResponseWriter, r *http.R
 
 		handlers.HandleExecuteStrategy(executeStrategyArgs)
 		return
+
+	case string(types.TransferFunds):
+		handleTransferFundsArgs := handlers.HandleTransferFundsArgs{
+			Client: &s.client,
+			Writer: w,
+			Req:    r,
+		}
+
+		handlers.HandleTransferFunds(handleTransferFundsArgs)
+		return
+
 	default:
 		log.Printf("Route not found: %q\n", route)
 		w.WriteHeader(http.StatusNotFound)
