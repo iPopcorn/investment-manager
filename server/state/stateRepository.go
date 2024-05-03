@@ -48,6 +48,12 @@ func (r *StateRepository) GetState() (*types.State, error) {
 
 	err = json.Unmarshal(data, &state)
 
+	if err != nil {
+		fmt.Printf(location+"Failed to de-serialize state.\nGiven: %s\n%v\n", string(data), err)
+
+		return nil, err
+	}
+
 	return &state, nil
 }
 

@@ -104,6 +104,6 @@ func HandleTransferFunds(args HandleTransferFundsArgs) {
 		return
 	}
 
-	log.Printf(handlerName+"Transfer funds success!\nresp: %q\n", string(resp))
+	log.Printf(handlerName+"Transfer funds success!\nresp: %s\n", string(resp))
 	server_utils.WriteResponse(args.Writer, resp, nil)
 }

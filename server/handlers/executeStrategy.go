@@ -157,6 +157,7 @@ func executeStrategy(args executeStrategyArgs) {
 		}
 	}
 
+	clientOrderID, err := uuid.NewString()
 	if err != nil {
 		fmt.Printf("Failed to generate uuid for clientOrderId\n%v\nReturning\n", err)
 
@@ -193,7 +194,6 @@ func executeStrategy(args executeStrategyArgs) {
 		return
 	}
 
-	clientOrderID, err := uuid.NewString()
 	newOffer := &types.Offer{
 		ClientOrderId:         clientOrderID,
 		ProductId:             args.ProductID,
@@ -239,7 +239,14 @@ func executeStrategy(args executeStrategyArgs) {
 
 	newState.LastUpdated = time.Now().Add(time.Second).Format(time.RFC3339)
 
-	args.StateRepository.Save(*newState)
+	err = args.StateRepository.Save(*newState)
+
+	if err != nil {
+		fmt.Printf("Failed to save state\nstate: %+v\nerror: %v\n", newState, err)
+
+		args.Finished <- true
+		return
+	}
 	fmt.Printf("END executeStrategy()\n")
 	args.Finished <- true
 }
@@ -279,7 +286,10 @@ func createOrderConfig(args *createOrderConfigArgs) (*types.OrderConfiguration, 
 	// Base currency is on the left side of the product id.
 	// Example: "ETH-GBP" the base currency is "ETH"
 	baseSizeFloat := availableToTrade / limitPriceFloat
-	baseSize := strconv.FormatFloat(baseSizeFloat, 'f', 8, 64)
+
+	// Coinbase doesn't allow decimal precision > 8
+	decimalPrecision := 8
+	baseSize := strconv.FormatFloat(baseSizeFloat, 'f', decimalPrecision, 64)
 
 	switch args.StrategyName {
 	case types.HODL:

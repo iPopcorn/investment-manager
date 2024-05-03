@@ -26,8 +26,11 @@ type OrderConfiguration struct {
 	LimitLimitGTD LimitLimitGTD `json:"limit_limit_gtd"`
 }
 
+// Base size is the quantity of the base currency to buy.
+// Base currency is on the left side of the product id.
+// Example: "ETH-GBP" the base currency is "ETH"
 type LimitLimitGTD struct {
-	BaseSize   string `json:"base_size"`   // Amount of base currency to spend on order
+	BaseSize   string `json:"base_size"`   // Amount of base currency to sell/buy
 	LimitPrice string `json:"limit_price"` // Ceiling price for which the order should get filled.
 	EndTime    string `json:"end_time"`    // RFC3339 Timestamp
 	PostOnly   bool   `json:"post_only"`   // If true, order should only make liquidity - maker commission charged.
