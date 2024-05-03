@@ -1,4 +1,4 @@
-package util
+package server_utils
 
 import (
 	"fmt"

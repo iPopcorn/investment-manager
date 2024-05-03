@@ -10,8 +10,8 @@ import (
 	"time"
 
 	"github.com/iPopcorn/investment-manager/infrastructure"
+	"github.com/iPopcorn/investment-manager/server/server_utils"
 	"github.com/iPopcorn/investment-manager/server/state"
-	"github.com/iPopcorn/investment-manager/server/util"
 	"github.com/iPopcorn/investment-manager/types"
 )
 
@@ -30,7 +30,7 @@ type testServerArgs struct {
 }
 
 func (testClient testHttpClient) Do(req *http.Request) (*http.Response, error) {
-	_, args := util.GetRouteAndArgsFromPath(req.URL.Path)
+	_, args := server_utils.GetRouteAndArgsFromPath(req.URL.Path)
 
 	index := len(args) - 1
 	key := args[index]

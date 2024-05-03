@@ -1,30 +1,24 @@
-package handlers
+package util
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 
 	"github.com/iPopcorn/investment-manager/types"
 )
 
-func handleErrorResponse(resp []byte) error {
+func HandleErrorResponse(resp []byte) error {
 	var errResp types.ErrorResponse
 
 	err := json.Unmarshal(resp, &errResp)
 
 	if err != nil {
-		fmt.Println("Failed to parse response.")
+		fmt.Printf("Failed to parse response.\n%q\n", string(resp))
 		return err
 	}
 
 	if errResp.Error != "" {
-		errMsg := fmt.Sprintf("Error: %s\nMessage: %s",
-			errResp.Error,
-			errResp.Message,
-		)
-
-		return errors.New(errMsg)
+		return fmt.Errorf("Error: %s\nMessage: %s\n", errResp.Error, errResp.Message)
 	}
 
 	return nil

@@ -8,6 +8,7 @@ import (
 
 	"github.com/iPopcorn/investment-manager/infrastructure"
 	"github.com/iPopcorn/investment-manager/types"
+	"github.com/iPopcorn/investment-manager/util"
 	"github.com/spf13/cobra"
 )
 
@@ -65,7 +66,7 @@ func getPortfolioDetails(portfolioName string, client *infrastructure.Investment
 		return nil, fmt.Errorf("Error getting portfolio details from api: \n%v\n", err)
 	}
 
-	err = handleErrorResponse(httpResponse)
+	err = util.HandleErrorResponse(httpResponse)
 
 	if err != nil {
 		fmt.Println("Failed to retrieve portfolio details")

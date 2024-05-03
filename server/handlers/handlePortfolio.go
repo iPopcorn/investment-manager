@@ -6,7 +6,7 @@ import (
 	"net/http"
 
 	"github.com/iPopcorn/investment-manager/infrastructure"
-	"github.com/iPopcorn/investment-manager/server/util"
+	"github.com/iPopcorn/investment-manager/server/server_utils"
 )
 
 type HandlePortfolioArgs struct {
@@ -33,12 +33,12 @@ func HandlePortfolio(hpArgs HandlePortfolioArgs) {
 
 		if err != nil {
 			log.Printf("Failed to read body from request: %v\n", err)
-			util.WriteResponse(w, nil, err)
+			server_utils.WriteResponse(w, nil, err)
 		}
 
 		resp, err := client.Post(url, bodyData)
 
-		util.WriteResponse(w, resp, err)
+		server_utils.WriteResponse(w, resp, err)
 	} else {
 		if len(hpArgs.Args) == 1 {
 			portfolioUUID := hpArgs.Args[0]
@@ -49,7 +49,7 @@ func HandlePortfolio(hpArgs HandlePortfolioArgs) {
 				log.Printf("Error retrieving portfolio details from URL: %q\nError: %v", url, err)
 			}
 
-			util.WriteResponse(w, resp, err)
+			server_utils.WriteResponse(w, resp, err)
 		} else {
 			resp, err := client.Get(url)
 
@@ -57,7 +57,7 @@ func HandlePortfolio(hpArgs HandlePortfolioArgs) {
 				log.Printf("Error retrieving portfolios from URL: %q\nError: %v", url, err)
 			}
 
-			util.WriteResponse(w, resp, err)
+			server_utils.WriteResponse(w, resp, err)
 		}
 	}
 

@@ -9,8 +9,9 @@ import (
 	"strconv"
 
 	"github.com/iPopcorn/investment-manager/infrastructure"
-	"github.com/iPopcorn/investment-manager/server/util"
+	"github.com/iPopcorn/investment-manager/server/server_utils"
 	"github.com/iPopcorn/investment-manager/types"
+	"github.com/iPopcorn/investment-manager/util"
 )
 
 type HandleTransferFundsArgs struct {
@@ -23,7 +24,7 @@ func HandleTransferFunds(args HandleTransferFundsArgs) {
 	handlerName := "HandleTransferFunds: "
 
 	if args.Req.Method != http.MethodPost {
-		util.WriteResponse(args.Writer, nil, fmt.Errorf(handlerName+"Invalid http method, wanted %s got %s", http.MethodPost, args.Req.Method))
+		server_utils.WriteResponse(args.Writer, nil, fmt.Errorf(handlerName+"Invalid http method, wanted %s got %s", http.MethodPost, args.Req.Method))
 
 		return
 	}
@@ -36,7 +37,7 @@ func HandleTransferFunds(args HandleTransferFundsArgs) {
 
 	if err != nil {
 		log.Printf(handlerName+"Failed to read body from request: %v\n", err)
-		util.WriteResponse(args.Writer, nil, err)
+		server_utils.WriteResponse(args.Writer, nil, err)
 
 		return
 	}
@@ -47,7 +48,7 @@ func HandleTransferFunds(args HandleTransferFundsArgs) {
 
 	if err != nil {
 		log.Printf(handlerName + "Failed to deserialize request")
-		util.WriteResponse(args.Writer, nil, err)
+		server_utils.WriteResponse(args.Writer, nil, err)
 
 		return
 	}
@@ -56,16 +57,16 @@ func HandleTransferFunds(args HandleTransferFundsArgs) {
 
 	if err != nil {
 		log.Printf(handlerName+"Invalid request\nCould not convert 'Amount' to float64\nGiven: %q\n%v", reqBody.Amount, err)
-		util.WriteResponse(args.Writer, nil, err)
+		server_utils.WriteResponse(args.Writer, nil, err)
 
 		return
 	}
 
-	senderPortfolioDetails, err := util.PortfolioDetails(args.Client, reqBody.SenderID)
+	senderPortfolioDetails, err := server_utils.PortfolioDetails(args.Client, reqBody.SenderID)
 
 	if err != nil {
 		log.Printf(handlerName+"Failed to get portfolio details for sender. Given: %q\n", reqBody.SenderID)
-		util.WriteResponse(args.Writer, nil, err)
+		server_utils.WriteResponse(args.Writer, nil, err)
 
 		return
 	}
@@ -86,15 +87,23 @@ func HandleTransferFunds(args HandleTransferFundsArgs) {
 		return
 	}
 
-	resp, err := util.TransferFunds(args.Client, &reqBody)
+	resp, err := server_utils.TransferFunds(args.Client, &reqBody)
 
 	if err != nil {
 		log.Printf(handlerName+"Failed to transfer funds\nerror: %+v\nrequest: %+v", err, reqBody)
-		util.WriteResponse(args.Writer, nil, err)
+		server_utils.WriteResponse(args.Writer, nil, err)
+
+		return
+	}
+
+	err = util.HandleErrorResponse(resp)
+	if err != nil {
+		log.Printf(handlerName+"Received error from coinbase when transferring funds: %v\n", err)
+		server_utils.WriteResponse(args.Writer, nil, err)
 
 		return
 	}
 
 	log.Printf(handlerName+"Transfer funds success!\nresp: %q\n", string(resp))
-	util.WriteResponse(args.Writer, resp, nil)
+	server_utils.WriteResponse(args.Writer, resp, nil)
 }

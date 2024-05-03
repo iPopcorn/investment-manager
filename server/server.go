@@ -6,8 +6,8 @@ import (
 
 	"github.com/iPopcorn/investment-manager/infrastructure"
 	"github.com/iPopcorn/investment-manager/server/handlers"
+	"github.com/iPopcorn/investment-manager/server/server_utils"
 	"github.com/iPopcorn/investment-manager/server/state"
-	"github.com/iPopcorn/investment-manager/server/util"
 	"github.com/iPopcorn/investment-manager/types"
 )
 
@@ -44,7 +44,7 @@ func InvestmentManagerHttpServerFactory(args InvestmentManagerHTTPServerArgs) *I
 func (s *InvestmentManagerHTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	log.Printf("Received request: %v\n", r)
 
-	route, args := util.GetRouteAndArgsFromPath(r.URL.Path)
+	route, args := server_utils.GetRouteAndArgsFromPath(r.URL.Path)
 
 	switch route {
 

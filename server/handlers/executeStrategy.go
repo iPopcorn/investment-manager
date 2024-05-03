@@ -11,8 +11,8 @@ import (
 
 	"github.com/fossoreslp/go-uuid-v4"
 	"github.com/iPopcorn/investment-manager/infrastructure"
+	"github.com/iPopcorn/investment-manager/server/server_utils"
 	"github.com/iPopcorn/investment-manager/server/state"
-	"github.com/iPopcorn/investment-manager/server/util"
 	"github.com/iPopcorn/investment-manager/types"
 )
 
@@ -29,7 +29,7 @@ func HandleExecuteStrategy(args HandleExecuteStrategyArgs) {
 	handlerName := "handleExecuteStrategy: "
 
 	if args.Req.Method != http.MethodPost {
-		util.WriteResponse(args.Writer, nil, fmt.Errorf(handlerName+"Invalid http method, wanted %s got %s", http.MethodPost, args.Req.Method))
+		server_utils.WriteResponse(args.Writer, nil, fmt.Errorf(handlerName+"Invalid http method, wanted %s got %s", http.MethodPost, args.Req.Method))
 
 		return
 	}
@@ -42,7 +42,7 @@ func HandleExecuteStrategy(args HandleExecuteStrategyArgs) {
 
 	if err != nil {
 		log.Printf(handlerName+"Failed to read body from request: %v\n", err)
-		util.WriteResponse(args.Writer, nil, err)
+		server_utils.WriteResponse(args.Writer, nil, err)
 
 		return
 	}
@@ -53,16 +53,16 @@ func HandleExecuteStrategy(args HandleExecuteStrategyArgs) {
 
 	if err != nil {
 		log.Printf(handlerName + "Failed to deserialize request")
-		util.WriteResponse(args.Writer, nil, err)
+		server_utils.WriteResponse(args.Writer, nil, err)
 
 		return
 	}
 
-	userPortfolios, err := util.ListPortfolios(args.Client)
+	userPortfolios, err := server_utils.ListPortfolios(args.Client)
 
 	if err != nil || len(userPortfolios.Portfolios) == 0 {
 		log.Printf(handlerName + "Failed to get portfolios from coinbase")
-		util.WriteResponse(args.Writer, nil, err)
+		server_utils.WriteResponse(args.Writer, nil, err)
 
 		return
 	}
@@ -76,16 +76,16 @@ func HandleExecuteStrategy(args HandleExecuteStrategyArgs) {
 	}
 
 	if selectedPortfolio == nil {
-		util.WriteResponse(args.Writer, nil, fmt.Errorf(handlerName+"Could not find requested portfolio\nGiven: %q", requestBody.Portfolio))
+		server_utils.WriteResponse(args.Writer, nil, fmt.Errorf(handlerName+"Could not find requested portfolio\nGiven: %q", requestBody.Portfolio))
 
 		return
 	}
 
-	selectedPortfolioDetails, err := util.PortfolioDetails(args.Client, selectedPortfolio.Uuid)
+	selectedPortfolioDetails, err := server_utils.PortfolioDetails(args.Client, selectedPortfolio.Uuid)
 
 	if err != nil {
 		fmt.Printf("err: %+v\n", err)
-		util.WriteResponse(args.Writer, nil, fmt.Errorf(handlerName+"Failed to get details for selected portfolio\n"))
+		server_utils.WriteResponse(args.Writer, nil, fmt.Errorf(handlerName+"Failed to get details for selected portfolio\n"))
 
 		return
 	}
@@ -98,11 +98,11 @@ func HandleExecuteStrategy(args HandleExecuteStrategyArgs) {
 		finished = make(chan bool)
 	}
 
-	productID, err := util.GetProductID(args.Client, selectedPortfolioDetails, requestBody.Currency)
+	productID, err := server_utils.GetProductID(args.Client, selectedPortfolioDetails, string(requestBody.Currency))
 
 	if err != nil {
 		fmt.Printf("Error: %+v", err)
-		util.WriteResponse(args.Writer, nil, fmt.Errorf(handlerName+"Failed to get ProductID\n"))
+		server_utils.WriteResponse(args.Writer, nil, fmt.Errorf(handlerName+"Failed to get ProductID\n"))
 
 		return
 	}
@@ -119,7 +119,7 @@ func HandleExecuteStrategy(args HandleExecuteStrategyArgs) {
 
 	go executeStrategy(executeStrategyArgs)
 
-	util.WriteResponse(args.Writer, []byte("OK"), nil)
+	server_utils.WriteResponse(args.Writer, []byte("OK"), nil)
 }
 
 type executeStrategyArgs struct {
@@ -168,7 +168,7 @@ func executeStrategy(args executeStrategyArgs) {
 
 	portfolio := args.PortfolioDetails.Breakdown.Portfolio
 
-	bestBidAsk, err := util.GetBestBidAsk(args.Client, args.ProductID)
+	bestBidAsk, err := server_utils.GetBestBidAsk(args.Client, args.ProductID)
 
 	if err != nil {
 		fmt.Printf("Failed to get best bid/ask \n%v\n", err)
