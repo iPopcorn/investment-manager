@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -127,8 +128,8 @@ type executeStrategyArgs struct {
 	PortfolioDetails *types.PortfolioDetailsResponse
 	StateRepository  *state.StateRepository
 	ProductID        string
-	StrategyName     string
-	StrategyCurrency string
+	StrategyName     types.StrategyName
+	StrategyCurrency types.SupportedCurrency
 	Finished         chan bool
 }
 
@@ -156,9 +157,6 @@ func executeStrategy(args executeStrategyArgs) {
 		}
 	}
 
-	fiveMinutesFromNow := time.Now().Add(time.Minute * 5).Format(time.RFC3339)
-	clientOrderID, err := uuid.NewString()
-
 	if err != nil {
 		fmt.Printf("Failed to generate uuid for clientOrderId\n%v\nReturning\n", err)
 
@@ -166,7 +164,8 @@ func executeStrategy(args executeStrategyArgs) {
 		return
 	}
 
-	portfolio := args.PortfolioDetails.Breakdown.Portfolio
+	breakdown := args.PortfolioDetails.Breakdown
+	portfolio := breakdown.Portfolio
 
 	bestBidAsk, err := server_utils.GetBestBidAsk(args.Client, args.ProductID)
 
@@ -179,6 +178,47 @@ func executeStrategy(args executeStrategyArgs) {
 
 	fmt.Printf("Best bid/ask for %s\n%+v\n", args.ProductID, bestBidAsk)
 
+	orderConfigArgs := &createOrderConfigArgs{
+		Breakdown:    &breakdown,
+		StrategyName: args.StrategyName,
+		BestBidAsk:   bestBidAsk,
+	}
+
+	orderConfig, err := createOrderConfig(orderConfigArgs)
+
+	if err != nil {
+		fmt.Printf("Failed to get order config\n%v\n", err)
+
+		args.Finished <- true
+		return
+	}
+
+	clientOrderID, err := uuid.NewString()
+	newOffer := &types.Offer{
+		ClientOrderId:         clientOrderID,
+		ProductId:             args.ProductID,
+		Side:                  types.BUY,
+		Config:                *orderConfig,
+		SelfTradePreventionId: types.Default,
+		RetailPortfolioId:     portfolio.Uuid,
+	}
+
+	previewMode := false
+
+	_, err = server_utils.PlaceOrder(&server_utils.PlaceOrderArgs{
+		Client:  args.Client,
+		Offer:   newOffer,
+		Preview: previewMode,
+	})
+
+	if err != nil {
+		fmt.Printf("Failed to place order\n%v\n", err)
+
+		args.Finished <- true
+		return
+	}
+
+	// TODO: Amend state rather than overwrite it
 	newState.Portfolios = []types.Portfolio{
 		{
 			Name:    portfolio.Name,
@@ -189,20 +229,7 @@ func executeStrategy(args executeStrategyArgs) {
 				Name:     args.StrategyName,
 				Currency: args.StrategyCurrency,
 				OpenOffers: []types.Offer{
-					{
-						ClientOrderId: clientOrderID,
-						ProductId:     args.ProductID,
-						Side:          types.BUY,
-						Config: types.OrderConfiguration{
-							Type:       types.LimitLimitGTD,
-							BaseSize:   "10",               // TODO: Use correct base size
-							LimitPrice: "10",               // TODO: Use correct limit price
-							PostOnly:   true,               // TODO: set post only conditionally
-							EndTime:    fiveMinutesFromNow, // TODO: set conditionally
-						},
-						SelfTradePreventionId: "test",         // TODO: use correct value
-						RetailPortfolioId:     portfolio.Uuid, // TODO confirm correct
-					},
+					*newOffer,
 				},
 				ClosedOffers: nil,
 			},
@@ -215,4 +242,57 @@ func executeStrategy(args executeStrategyArgs) {
 	args.StateRepository.Save(*newState)
 	fmt.Printf("END executeStrategy()\n")
 	args.Finished <- true
+}
+
+type createOrderConfigArgs struct {
+	Breakdown    *types.Breakdown
+	StrategyName types.StrategyName
+	BestBidAsk   *types.BestBidAskResponse
+}
+
+func createOrderConfig(args *createOrderConfigArgs) (*types.OrderConfiguration, error) {
+	fiveMinutesFromNow := time.Now().Add(time.Minute * 5).Format(time.RFC3339)
+
+	fmt.Printf("%+v\n", args.BestBidAsk)
+	// get available funds, assume GBP for now.
+	var availableToTrade float64
+	for _, position := range args.Breakdown.SpotPositions {
+		if position.Asset == "GBP" {
+			availableToTrade = position.AvailableToTradeFiat
+			break
+		}
+	}
+
+	//subtract expected commission
+	commissionRate := 0.00400001 // maker commission is 0.40% for orders less than $10k add 0.000001% padding
+	expectedCommission := availableToTrade * commissionRate
+	availableToTrade -= expectedCommission
+
+	// Match best bid price
+	limitPrice := args.BestBidAsk.PriceBooks[0].Bids[0].Price
+	limitPriceFloat, err := strconv.ParseFloat(limitPrice, 64)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to convert limit price to float\nGiven: %q\n%v\n", limitPrice, err)
+	}
+
+	// Base size is the quantity of the base currency to buy.
+	// Base currency is on the left side of the product id.
+	// Example: "ETH-GBP" the base currency is "ETH"
+	baseSizeFloat := availableToTrade / limitPriceFloat
+	baseSize := strconv.FormatFloat(baseSizeFloat, 'f', 8, 64)
+
+	switch args.StrategyName {
+	case types.HODL:
+		// For now, HODL strategy will spend all the fiat currency in 1 order
+		return &types.OrderConfiguration{
+			LimitLimitGTD: types.LimitLimitGTD{
+				BaseSize:   baseSize,
+				LimitPrice: limitPrice,
+				PostOnly:   true,               // TODO: set conditionally
+				EndTime:    fiveMinutesFromNow, // TODO: set conditionally
+			},
+		}, nil
+	default:
+		return nil, fmt.Errorf("Unsupported strategy name: %q\n", string(args.StrategyName))
+	}
 }

@@ -94,8 +94,8 @@ func AssertStateEqual(expected, actual *types.State, t *testing.T) {
 		t.Errorf("Deleted is %t\nExpected %t\n", actualPortfolio.Deleted, expectedPortfolio.Deleted)
 	}
 
-	AssertStringEqual(expectedPortfolio.CurrentStrategy.Name, actualPortfolio.CurrentStrategy.Name, t)
-	AssertStringEqual(expectedPortfolio.CurrentStrategy.Currency, actualPortfolio.CurrentStrategy.Currency, t)
+	AssertStringEqual(string(expectedPortfolio.CurrentStrategy.Name), string(actualPortfolio.CurrentStrategy.Name), t)
+	AssertStringEqual(string(expectedPortfolio.CurrentStrategy.Currency), string(actualPortfolio.CurrentStrategy.Currency), t)
 
 	actualOpenOffersLength := len(actualPortfolio.CurrentStrategy.OpenOffers)
 	expectedOpenOfferesLength := len(expectedPortfolio.CurrentStrategy.OpenOffers)
@@ -114,7 +114,7 @@ func AssertStateEqual(expected, actual *types.State, t *testing.T) {
 	AssertStringEqual(expectedOpenOffer.ClientOrderId, actualOpenOffer.ClientOrderId, t)
 	AssertStringEqual(expectedOpenOffer.ProductId, actualOpenOffer.ProductId, t)
 	AssertStringEqual(string(expectedOpenOffer.Side), string(actualOpenOffer.Side), t)
-	AssertStringEqual(expectedOpenOffer.SelfTradePreventionId, actualOpenOffer.SelfTradePreventionId, t)
+	AssertStringEqual(string(expectedOpenOffer.SelfTradePreventionId), string(actualOpenOffer.SelfTradePreventionId), t)
 	AssertStringEqual(expectedOpenOffer.RetailPortfolioId, actualOpenOffer.RetailPortfolioId, t)
 
 	if !reflect.DeepEqual(expectedOpenOffer.Config, actualOpenOffer.Config) {

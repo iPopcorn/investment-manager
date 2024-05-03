@@ -248,6 +248,14 @@ func TestExecuteStrategy(t *testing.T) {
 
 		serializedBestBidAskResponse, err := json.Marshal(testBestBidAskResponse)
 
+		tradeSuccessResponse := make(map[string]string)
+		tradeSuccessResponse["order_total"] = "100"
+		serializedTestSuccessResponse, err := json.Marshal(tradeSuccessResponse)
+
+		if err != nil {
+			t.Fatalf("Failed to serialize data. Given: %+v\n%v\n", tradeSuccessResponse, err)
+		}
+
 		timeStart := time.Now()
 		formattedTimeStart := timeStart.Format(time.RFC3339)
 
@@ -261,6 +269,7 @@ func TestExecuteStrategy(t *testing.T) {
 		responseMap["test-portfolio-id"] = serializedPortfolioDetailsResponse
 		responseMap["products"] = serializedTestProductResponse
 		responseMap["best_bid_ask"] = serializedBestBidAskResponse
+		responseMap["preview"] = serializedTestSuccessResponse
 
 		testServerArgs := &testServerArgs{
 			expectedResponseMap: responseMap,
@@ -376,8 +385,8 @@ func TestExecuteStrategy(t *testing.T) {
 
 		actualCurrentStrategy := actualPortfolio.CurrentStrategy
 
-		assertStringEquals("HODL", actualCurrentStrategy.Name, t)
-		assertStringEquals("ETH", actualCurrentStrategy.Currency, t)
+		assertStringEquals("HODL", string(actualCurrentStrategy.Name), t)
+		assertStringEquals("ETH", string(actualCurrentStrategy.Currency), t)
 
 		if actualCurrentStrategy.OpenOffers == nil {
 			t.Fatalf(unexpectedUpdate + "no open offers found")
@@ -407,22 +416,20 @@ func TestExecuteStrategy(t *testing.T) {
 
 		offerConfig := actualOpenOffer.Config
 
-		assertStringEquals(string(types.LimitLimitGTD), string(offerConfig.Type), t)
-
-		if offerConfig.BaseSize == "" {
+		if offerConfig.LimitLimitGTD.BaseSize == "" {
 			t.Errorf(unexpectedUpdate + "base size is empty")
 		}
 
-		if offerConfig.LimitPrice == "" {
+		if offerConfig.LimitLimitGTD.LimitPrice == "" {
 			t.Errorf(unexpectedUpdate + "limit price is empty")
 		}
 
-		if !offerConfig.PostOnly {
+		if !offerConfig.LimitLimitGTD.PostOnly {
 			t.Errorf(unexpectedUpdate + "post only should be true")
 		}
 
 		expectedEndTime := timeStart.Add(time.Minute * 5).Format(time.RFC3339)
-		assertStringEquals(expectedEndTime, offerConfig.EndTime, t)
+		assertStringEquals(expectedEndTime, offerConfig.LimitLimitGTD.EndTime, t)
 
 		// TODO: Match the current best bid
 		// TODO: Add the transaction to the state
@@ -511,19 +518,29 @@ func TestTransferFunds(t *testing.T) {
 			},
 		}
 
+		transferFundsSuccessResponse := make(map[string]string)
+		transferFundsSuccessResponse["source_portfolio_uuid"] = senderPortfolioID
+		transferFundsSuccessResponse["target_portfolio_uuid"] = receiverPortfolioID
+
+		serializedTransferFundsSuccessResponse, err := json.Marshal(transferFundsSuccessResponse)
+		if err != nil {
+			t.Fatalf("Failed to serialize data\nGiven: %+v\n%v\n", transferFundsSuccessResponse, err)
+		}
+
 		serializedTestSenderPortfolioDetailsResponse, err := json.Marshal(testSenderPortfolioDetailsResponse)
 		if err != nil {
-			t.Fatalf("Failed to serialize data\nGiven: %+v\n%v\n", serializedTestSenderPortfolioDetailsResponse, err)
+			t.Fatalf("Failed to serialize data\nGiven: %+v\n%v\n", testSenderPortfolioDetailsResponse, err)
 		}
 
 		serializedTestReceiverPortfolioDetailsResponse, err := json.Marshal(testReceiverPortfolioDetailsResponse)
 		if err != nil {
-			t.Fatalf("Failed to serialize data\nGiven: %+v\n%v\n", serializedTestReceiverPortfolioDetailsResponse, err)
+			t.Fatalf("Failed to serialize data\nGiven: %+v\n%v\n", testReceiverPortfolioDetailsResponse, err)
 		}
 
 		responseMap := make(map[string][]byte)
 		responseMap[senderPortfolioID] = serializedTestSenderPortfolioDetailsResponse
 		responseMap[receiverPortfolioID] = serializedTestReceiverPortfolioDetailsResponse
+		responseMap["move_funds"] = serializedTransferFundsSuccessResponse
 
 		testServerArgs := &testServerArgs{
 			expectedResponseMap: responseMap,

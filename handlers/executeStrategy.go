@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/iPopcorn/investment-manager/infrastructure"
 	"github.com/iPopcorn/investment-manager/types"
@@ -26,10 +27,18 @@ func ExecuteStrategyHandlerFactory(client *infrastructure.InvestmentManagerInter
 }
 
 func executeStrategy(portfolio, strategy, currency string, client *infrastructure.InvestmentManagerInternalHttpClient) error {
+	if strings.ToUpper(strategy) != string(types.HODL) {
+		return fmt.Errorf("Invalid strategy\nGiven: %q Expected: %q\n", strategy, string(types.HODL))
+	}
+
+	if strings.ToUpper(currency) != string(types.ETH) {
+		return fmt.Errorf("Invalid currency\nGiven: %q Expected: %q\n", currency, string(types.ETH))
+	}
+
 	request := &types.ExecuteStrategyRequest{
 		Portfolio: portfolio,
-		Strategy:  strategy,
-		Currency:  currency,
+		Strategy:  types.HODL,
+		Currency:  types.ETH,
 	}
 	serializedRequest, err := json.Marshal(request)
 

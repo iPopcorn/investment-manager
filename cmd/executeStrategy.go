@@ -12,6 +12,7 @@ var executeStrategyCmd = &cobra.Command{
 	Long: `Execute a trading strategy against a given portfolio. 
 If no portfolio is given, an error is thrown. 
 Use 'portfolio' command to see list of portfolios.
+Strategy and currency are not case sensitive.
 Supported strategies:
 HODL
 Supported currencies:
