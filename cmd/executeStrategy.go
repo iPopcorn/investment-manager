@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"github.com/iPopcorn/investment-manager/handlers"
+	"github.com/iPopcorn/investment-manager/infrastructure"
 	"github.com/spf13/cobra"
 )
 
@@ -11,13 +12,20 @@ var executeStrategyCmd = &cobra.Command{
 	Long: `Execute a trading strategy against a given portfolio. 
 If no portfolio is given, an error is thrown. 
 Use 'portfolio' command to see list of portfolios.
+Strategy and currency are not case sensitive.
 Supported strategies:
 HODL
 Supported currencies:
-ETH`,
-	RunE: handlers.ExecuteStrategy,
+ETH
+example: 'execute-strategy test hodl eth'`,
+	RunE: nil,
 }
 
 func init() {
+	internalHttpClient := infrastructure.GetDefaultInvestmentManagerInternalHttpClient()
+
+	executeStrategyHandler := handlers.ExecuteStrategyHandlerFactory(internalHttpClient)
+	executeStrategyCmd.RunE = executeStrategyHandler
+
 	rootCmd.AddCommand(executeStrategyCmd)
 }

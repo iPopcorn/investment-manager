@@ -8,26 +8,29 @@ import (
 
 	"github.com/iPopcorn/investment-manager/infrastructure"
 	"github.com/iPopcorn/investment-manager/types"
+	"github.com/iPopcorn/investment-manager/util"
 	"github.com/spf13/cobra"
 )
 
-func PortfolioDetails(cmd *cobra.Command, args []string) error {
-	if len(args) == 0 {
-		return errors.New("Expected an argument but did not receive one")
-	}
+func PortfolioDetailsFactory(internalHttpClient *infrastructure.InvestmentManagerInternalHttpClient) CobraCommandHandler {
+	return func(cmd *cobra.Command, args []string) error {
+		if len(args) == 0 {
+			return errors.New("Expected an argument but did not receive one")
+		}
 
-	if len(args) > 1 {
-		return fmt.Errorf("Expected 1 arg, received %d args", len(args))
-	}
+		if len(args) > 1 {
+			return fmt.Errorf("Expected 1 arg, received %d args", len(args))
+		}
 
-	details, err := getPortfolioDetails(args[0])
+		details, err := getPortfolioDetails(args[0], internalHttpClient)
 
-	if err != nil {
+		if err != nil {
+			return err
+		}
+
+		showPortfolioDetails(details)
 		return err
 	}
-
-	showPortfolioDetails(details)
-	return err
 }
 
 func showPortfolioDetails(details *types.PortfolioDetailsResponse) {
@@ -41,8 +44,8 @@ func showPortfolioDetails(details *types.PortfolioDetailsResponse) {
 	fmt.Printf("Amount available for trade: %s %s\n", cashBalance.Value, cashBalance.Currency)
 }
 
-func getPortfolioDetails(portfolioName string) (*types.PortfolioDetailsResponse, error) {
-	portfolios, err := listPortfolios()
+func getPortfolioDetails(portfolioName string, client *infrastructure.InvestmentManagerInternalHttpClient) (*types.PortfolioDetailsResponse, error) {
+	portfolios, err := listPortfolios(client)
 
 	if err != nil {
 		return nil, err
@@ -57,14 +60,13 @@ func getPortfolioDetails(portfolioName string) (*types.PortfolioDetailsResponse,
 	portfolioID := foundPortfolio.Uuid
 	path := "/portfolios/" + portfolioID
 
-	internalClient := infrastructure.GetInvestmentManagerInternalHttpClient()
-	httpResponse, err := internalClient.Get(path)
+	httpResponse, err := client.Get(path)
 
 	if err != nil {
 		return nil, fmt.Errorf("Error getting portfolio details from api: \n%v\n", err)
 	}
 
-	err = handleErrorResponse(httpResponse)
+	err = util.HandleErrorResponse(httpResponse)
 
 	if err != nil {
 		fmt.Println("Failed to retrieve portfolio details")

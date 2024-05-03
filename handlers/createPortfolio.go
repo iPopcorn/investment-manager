@@ -6,6 +6,7 @@ import (
 
 	"github.com/iPopcorn/investment-manager/infrastructure"
 	"github.com/iPopcorn/investment-manager/types"
+	"github.com/iPopcorn/investment-manager/util"
 	"github.com/spf13/cobra"
 )
 
@@ -35,7 +36,7 @@ func displayCreatedPortfolio(newPortfolio *types.PortfolioCreatedResponse) {
 
 func createPortfolio(name string) (*types.PortfolioCreatedResponse, error) {
 	path := "/portfolios"
-	internalClient := infrastructure.GetInvestmentManagerInternalHttpClient()
+	internalClient := infrastructure.GetDefaultInvestmentManagerInternalHttpClient()
 
 	request := []byte(fmt.Sprintf(`{
 		"name": "%s"
@@ -47,7 +48,7 @@ func createPortfolio(name string) (*types.PortfolioCreatedResponse, error) {
 		return nil, fmt.Errorf("Error creating portfolio: \n%v\n", err)
 	}
 
-	err = handleErrorResponse(httpResponse)
+	err = util.HandleErrorResponse(httpResponse)
 
 	if err != nil {
 		fmt.Println("Failed to create portfolio")

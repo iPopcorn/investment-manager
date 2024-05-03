@@ -1,5 +1,11 @@
 package types
 
+type TransferRequest struct {
+	SenderID   string
+	ReceiverID string
+	Amount     string
+}
+
 type PortfolioResponse struct {
 	Portfolios []Portfolio `json:"portfolios"`
 }
@@ -14,10 +20,12 @@ type ErrorResponse struct {
 }
 
 type Portfolio struct {
-	Name    string `json:"name"`
-	Uuid    string `json:"uuid"`
-	Type    string `json:"type"`
-	Deleted bool   `json:"deleted"`
+	Name               string      `json:"name"`
+	Uuid               string      `json:"uuid"`
+	Type               string      `json:"type"`
+	Deleted            bool        `json:"deleted"`
+	CurrentStrategy    *Strategy   `json:"current_strategy"`
+	PreviousStrategies *[]Strategy `json:"previous_strategies"`
 }
 
 type PortfolioDetailsResponse struct {

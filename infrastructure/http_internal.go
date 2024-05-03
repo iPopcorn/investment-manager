@@ -13,10 +13,17 @@ type InvestmentManagerInternalHttpClient struct {
 	baseURL string
 }
 
-func GetInvestmentManagerInternalHttpClient() *InvestmentManagerInternalHttpClient {
+func GetDefaultInvestmentManagerInternalHttpClient() *InvestmentManagerInternalHttpClient {
 	return &InvestmentManagerInternalHttpClient{
 		client:  &http.Client{},
 		baseURL: "http://127.0.0.1:5000",
+	}
+}
+
+func InvestmentManagerInternalHttpClientFactory(client HttpClient, baseURL string) *InvestmentManagerInternalHttpClient {
+	return &InvestmentManagerInternalHttpClient{
+		client:  client,
+		baseURL: baseURL,
 	}
 }
 

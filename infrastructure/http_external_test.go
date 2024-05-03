@@ -1,34 +1,17 @@
 package infrastructure_test
 
 import (
-	"bytes"
 	"fmt"
-	"io"
-	"net/http"
 	"testing"
 
 	"github.com/iPopcorn/investment-manager/infrastructure"
+	testutils "github.com/iPopcorn/investment-manager/test-utils"
 )
-
-type testHttpClient struct {
-	getResponse string
-}
-
-type testReader struct {
-	data []byte
-}
-
-func (testClient testHttpClient) Do(req *http.Request) (*http.Response, error) {
-	resp := http.Response{
-		Body: io.NopCloser(bytes.NewBufferString(testClient.getResponse)),
-	}
-	return &resp, nil
-}
 
 func TestGet(t *testing.T) {
 	t.Run("Gets data from the given URL", func(t *testing.T) {
 		expected := "Called Do()"
-		httpClient := testHttpClient{getResponse: expected}
+		httpClient := testutils.TestHttpClient{GetResponse: expected}
 		testClient := infrastructure.InvestmentManagerExternalHttpClient{
 			HttpClient: httpClient,
 		}
@@ -46,7 +29,7 @@ func TestGet(t *testing.T) {
 	})
 
 	t.Run("Returns error if url is invalid", func(t *testing.T) {
-		httpClient := testHttpClient{}
+		httpClient := testutils.TestHttpClient{}
 		testClient := infrastructure.InvestmentManagerExternalHttpClient{
 			HttpClient: httpClient,
 		}
