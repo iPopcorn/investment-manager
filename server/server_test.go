@@ -270,6 +270,7 @@ func TestExecuteStrategy(t *testing.T) {
 		responseMap["products"] = serializedTestProductResponse
 		responseMap["best_bid_ask"] = serializedBestBidAskResponse
 		responseMap["preview"] = serializedTestSuccessResponse
+		responseMap["orders"] = serializedTestSuccessResponse
 
 		testServerArgs := &testServerArgs{
 			expectedResponseMap: responseMap,
