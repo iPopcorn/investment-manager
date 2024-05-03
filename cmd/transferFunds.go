@@ -8,15 +8,13 @@ import (
 
 var transferFundsCommand = &cobra.Command{
 	Use:   "transfer-funds sender receiver amount",
-	Short: "Execute a specified trading strategy against a given portfolio",
-	Long: `Execute a trading strategy against a given portfolio. 
-If no portfolio is given, an error is thrown. 
+	Short: "Transfer funds from the sender to the receiver",
+	Long: `Transfer funds from the sender portfolio to the receiver portfolio. 
+An error is thrown if incorrect arguments given. 
+Refer to the portfolios by name.
+Names are case sensitive.
 Use 'portfolio' command to see list of portfolios.
-Supported strategies:
-HODL
-Supported currencies:
-ETH
-example: 'execute-strategy test hodl eth'`,
+example: 'transfer-funds default test 10'`,
 	RunE: nil,
 }
 
